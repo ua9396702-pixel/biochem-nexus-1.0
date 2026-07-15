@@ -1,0 +1,939 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DNA Explorer — BioNexus</title>
+<meta http-equiv="refresh" content="0; url=molecular-biology/dna-explorer.html" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--void:#030712; --teal:#14B8A6; --cyan:#22D3EE; --ink:#E6EDF5; --border:rgba(103,232,249,0.18);}
+*{box-sizing:border-box; margin:0; padding:0;}
+html{scroll-behavior:smooth;}
+body{min-height:100vh; background:#02060F; color:var(--ink); font-family:'Inter',sans-serif;}
+a{color:inherit; text-decoration:none;}
+body::before{content:''; position:fixed; inset:0; background:radial-gradient(circle at 20% 20%, rgba(34,211,238,0.16), transparent 26%), radial-gradient(circle at 80% 30%, rgba(45,212,191,0.12), transparent 22%), radial-gradient(circle at 50% 80%, rgba(34,211,238,0.08), transparent 30%); pointer-events:none;}
+.wrap{max-width:1080px; margin:0 auto; padding:24px;}
+header{padding:24px 0;}
+.brand{display:inline-flex; align-items:center; gap:10px; font-family:'Space Grotesk',sans-serif; font-size:22px; font-weight:700;}
+.brand .gradient-text{background:linear-gradient(100deg,#2DD4BF,#22D3EE); -webkit-background-clip:text; color:transparent;}
+.hero{min-height:100vh; display:flex; align-items:center;}
+.hero-content{max-width:680px;}
+.hero h1{font-size:52px; line-height:1.05; margin-bottom:24px;}
+.hero h2{font-size:24px; font-weight:500; color:var(--ink); margin-bottom:18px;}
+.hero p{font-size:17px; line-height:1.75; color:rgba(230,237,245,0.78); margin-bottom:32px;}
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:10px; border-radius:999px; padding:14px 26px; font-size:15px; font-weight:600; border:none; cursor:pointer; transition:transform .2s ease, box-shadow .2s ease;}
+.btn-primary{background:linear-gradient(100deg,#2DD4BF,#22D3EE); color:#061E2D;}
+.btn-primary:hover{transform:translateY(-2px); box-shadow:0 16px 40px rgba(34,211,238,0.28);}
+.card{margin-top:48px; padding:32px; border-radius:28px; background:rgba(15,31,53,0.8); border:1px solid rgba(103,232,249,0.16); box-shadow:0 20px 40px rgba(2,8,18,0.55);}
+.card h3{font-size:20px; margin-bottom:18px;}
+.card ul{list-style:none; display:grid; gap:12px;}
+.card li{display:flex; align-items:flex-start; gap:12px; font-size:15px; color:rgba(230,237,245,0.82);}
+.card li::before{content:'•'; color:#2DD4BF; line-height:1.2;}
+.footer-note{margin-top:56px; font-size:13px; color:var(--ink); opacity:0.7;}
+</style>
+<style>
+/* Simulator styles: premium glassmorphism, dark theme, responsive layout */
+:root{--glass-bg:rgba(10,18,28,0.6); --glass-border:rgba(125,210,220,0.12); --muted:rgba(230,237,245,0.72); --accent:#22D3EE; --accent-2:#14B8A6}
+.card-glass{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border:1px solid var(--glass-border); padding:14px; border-radius:14px}
+.sim-section{margin-top:32px; padding:20px; border-radius:18px; background:linear-gradient(180deg, rgba(6,12,20,0.6), rgba(4,8,14,0.5)); border:1px solid rgba(255,255,255,0.02)}
+.sim-header{display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px}
+.sim-actions{display:flex; gap:8px}
+.icon-btn{background:transparent; border:1px solid rgba(255,255,255,0.03); padding:8px 10px; border-radius:10px; color:var(--ink); cursor:pointer}
+.collapsible{background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent); padding:10px; border-radius:10px; margin-bottom:12px; display:none}
+.collapsible.open{display:block}
+.sim-grid{display:grid; grid-template-columns:1fr 360px; gap:20px; align-items:start}
+.sim-canvas{min-height:320px; border-radius:12px; display:flex; align-items:center; justify-content:center; padding:8px; position:relative; overflow:hidden}
+.sim-canvas .tooltip{position:absolute; top:16px; right:16px; background:rgba(2,6,10,0.7); color:var(--ink); padding:8px 10px; border-radius:8px; font-size:13px; display:none}
+.rep-svg-wrap{width:100%; height:100%;}
+.rep-sidebar .rep-info{margin:12px 0}
+.rep-enzyme-list{display:grid; gap:8px}
+.rep-enzyme{display:flex; gap:10px; align-items:center; padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.03); cursor:pointer}
+.rep-enzyme.active{box-shadow:0 10px 30px rgba(34,211,238,0.08); border-color:rgba(34,211,238,0.18);}
+.rep-enzyme svg{width:28px; height:28px; flex-shrink:0}
+.rep-label{background:rgba(0,0,0,0.35); padding:6px 8px; border-radius:6px; color:var(--ink); font-weight:600; cursor:pointer; transition:transform .18s ease}
+.rep-label:hover{transform:translateY(-3px); box-shadow:0 8px 20px rgba(0,0,0,0.4)}
+.rep-highlight{filter:drop-shadow(0 8px 24px rgba(34,211,238,0.12));}
+.particle{position:absolute; width:6px; height:6px; border-radius:50%; background:rgba(34,211,238,0.9); opacity:0.9; pointer-events:none}
+.rep-quiz{margin-top:12px}
+.rep-quiz .quiz-q{margin-bottom:12px}
+.rep-quiz .match-area{display:flex; gap:12px}
+.rep-quiz .draggable{padding:6px 8px; border-radius:6px; background:rgba(255,255,255,0.04); cursor:grab}
+.sim-panel{padding:8px 6px}
+.stepper{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px}
+.stepper .progress-pill{flex:1; margin-left:12px}
+.progress-pill progress{width:100%; height:10px; accent-color:var(--accent)}
+.controls{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px}
+.controls .btn{background:linear-gradient(90deg,var(--accent-2),var(--accent)); color:#03171a; border:none; padding:8px 12px; border-radius:10px; box-shadow:0 8px 20px rgba(34,211,238,0.08)}
+.controls .btn[disabled]{opacity:0.5}
+.enzyme-list h4{margin:8px 0}
+.enzyme-list ul{list-style:none; padding:0; margin:0; display:grid; gap:8px}
+.enzyme-btn{background:transparent; color:var(--ink); border:1px solid rgba(255,255,255,0.03); padding:8px 10px; border-radius:8px; cursor:pointer}
+.enzyme-btn:hover{background:rgba(34,211,238,0.04); color:var(--accent)}
+.enzyme-card{margin-top:12px; padding:12px; border-radius:12px; background:transparent; border:1px solid rgba(255,255,255,0.02); min-height:90px}
+.explanation{margin-top:12px; color:var(--muted)}
+.mut-grid{display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start}
+.mut-sequence label{display:block; margin-bottom:8px; color:var(--muted)}
+.mut-sequence textarea{width:100%; font-family:Inter,monospace; font-size:14px; padding:10px; border-radius:10px; background:rgba(5,8,12,0.4); color:var(--ink); border:1px solid rgba(255,255,255,0.03)}
+.mut-controls{display:flex; gap:8px; margin-top:8px; align-items:center}
+.mut-preview .mut-visuals{display:flex; gap:12px}
+.mut-col{flex:1}
+.sequence-row{display:flex; flex-wrap:wrap; gap:6px; padding:8px; border-radius:8px; background:rgba(0,0,0,0.25); min-height:44px}
+.sequence-row .nuc{padding:6px 8px; border-radius:8px; color:#021418; font-weight:700}
+.nuc-A{background:linear-gradient(90deg,#FFD6E0,#FF9EB3)}
+.nuc-T{background:linear-gradient(90deg,#C6FAFF,#7EE7F7)}
+.nuc-C{background:linear-gradient(90deg,#E6E6FF,#B8B3FF)}
+.nuc-G{background:linear-gradient(90deg,#D9F7E9,#9FEFD0)}
+.nuc.animate-insert{animation:pop-in .45s ease}
+.nuc.animate-change{animation:flash .6s ease}
+.nuc.animate-delete{opacity:0.15; transform:translateY(-6px); transition:opacity .4s, transform .4s}
+@keyframes pop-in{0%{transform:scale(.2);opacity:0}60%{transform:scale(1.05)}100%{transform:scale(1)}}
+@keyframes flash{0%{box-shadow:0 0 0 rgba(255,255,255,0)}50%{box-shadow:0 8px 20px rgba(34,211,238,0.12)}100%{box-shadow:0 0 0 rgba(255,255,255,0)}}
+.mut-result{margin-top:10px}
+.mut-summary{margin-top:8px}
+.mut-effect{white-space:pre-wrap}
+.mono{background:rgba(2,6,10,0.45); padding:12px; border-radius:10px; overflow:auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', monospace}
+.hl{background:linear-gradient(90deg,rgba(34,211,238,0.14),rgba(20,184,166,0.12)); color:var(--ink); padding:0 2px; border-radius:3px}
+.challenge-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:16px}
+.tooltip{pointer-events:none}
+.card-glass{backdrop-filter:blur(6px)}
+@media (max-width:900px){ .sim-grid{grid-template-columns:1fr} .mut-grid{grid-template-columns:1fr} .sim-panel{order:2} .challenge-grid{grid-template-columns:1fr} }
+</style>
+<style>
+@media (max-width:780px){ .hero{padding:60px 0; } .hero h1{font-size:42px;} .hero h2{font-size:20px;} }
+</style>
+</style>
+<style>
+/* Replication info card modal and module panels */
+#rep-info-card{position:fixed; right:24px; bottom:24px; width:340px; max-width:92%; z-index:1200; display:none}
+#rep-info-card.open{display:block}
+.rep-info-inner{position:relative; padding:12px}
+#rep-info-close{position:absolute; top:8px; right:8px}
+.rep-info-content{font-size:14px; line-height:1.45; max-height:260px; overflow:auto}
+
+/* Transcription & Translation canvases */
+.tx-svg-wrap,.tl-svg-wrap{width:100%; height:260px}
+.tx-stage-legend,.tl-stage-legend{display:flex; gap:8px; align-items:center; margin-top:8px}
+.molecule{font-weight:600}
+.polymerase{fill:linear-gradient(90deg,#FFD27A,#FFB86B)}
+.rna-letter{font-family:ui-monospace,monospace; font-size:12px; fill:#021418}
+.ribosome-small{fill:rgba(255,255,255,0.04); stroke:rgba(255,255,255,0.06)}
+.ribosome-large{fill:rgba(34,211,238,0.06); stroke:rgba(34,211,238,0.12)}
+.tRNA{fill:#FFD6A6}
+.peptide{fill:#A8FFD8}
+.codon-active{stroke:rgba(255,255,255,0.2); filter:drop-shadow(0 6px 18px rgba(34,211,238,0.06))}
+.tx-controls .btn,.tl-controls .btn{padding:8px 10px; border-radius:8px}
+.info-panel{margin-top:10px}
+
+/* compact help glossary */
+.glossary{display:grid; gap:6px; margin-top:12px}
+.glossary .term{font-weight:700}
+</style>
+<style>
+/* DNA Repair and Sequencing module styles */
+.repair-svg-wrap,.seq-svg-wrap{width:100%; height:300px}
+.repair-svg-wrap svg,.seq-svg-wrap svg{width:100%; height:100%; display:block}
+.repair-controls .btn,.seq-controls .btn{padding:8px 10px; border-radius:8px}
+.repair-controls select,.seq-controls select{min-height:38px; max-width:100%; border-radius:10px; border:1px solid rgba(103,232,249,0.16); background:rgba(3,7,18,0.72); color:var(--ink); padding:8px 10px}
+.repair-legend,.seq-legend{display:flex; gap:8px; align-items:center; margin-top:10px}
+.enzyme-card{cursor:pointer; margin-top:0; min-height:0; padding:10px 12px; border-color:rgba(103,232,249,0.12); background:rgba(255,255,255,0.025); transition:border-color .18s ease, transform .18s ease, background .18s ease}
+.enzyme-card:hover,.enzyme-card:focus{outline:none; transform:translateY(-2px); border-color:rgba(34,211,238,0.38); background:rgba(34,211,238,0.055)}
+.enzyme-card.active{border-color:rgba(45,212,191,0.58); box-shadow:0 12px 28px rgba(20,184,166,0.1)}
+.repair-step{margin-top:8px}
+.repair-callout,.seq-callout{margin-top:10px; padding:10px 12px; border-radius:10px; border:1px solid rgba(103,232,249,0.12); background:linear-gradient(180deg,rgba(34,211,238,0.06),rgba(20,184,166,0.025)); color:rgba(230,237,245,0.82); font-size:13px; line-height:1.5}
+.seq-flow{display:grid; grid-template-columns:1fr; gap:8px}
+.tech-box{padding:10px; border-radius:10px; background:rgba(255,255,255,0.02)}
+.bio-label{font-family:'Inter',sans-serif; font-size:13px; fill:rgba(230,237,245,0.86)}
+.bio-small{font-family:'Inter',sans-serif; font-size:11px; fill:rgba(230,237,245,0.68)}
+.bio-chip{fill:rgba(34,211,238,0.1); stroke:rgba(34,211,238,0.36)}
+.bio-active{filter:drop-shadow(0 10px 24px rgba(34,211,238,0.18))}
+.dna-base{font-family:ui-monospace,monospace; font-weight:700; font-size:14px; fill:#021418}
+.scan-line{animation:repair-scan 1.6s ease-in-out infinite alternate}
+.pulse-node{animation:repair-pulse 1.1s ease-in-out infinite}
+.seq-read{animation:seq-read 1.35s ease-in-out infinite alternate}
+@keyframes repair-scan{from{transform:translateX(-8px)}to{transform:translateX(34px)}}
+@keyframes repair-pulse{0%,100%{opacity:.62}50%{opacity:1}}
+@keyframes seq-read{from{opacity:.42; transform:translateY(0)}to{opacity:1; transform:translateY(-5px)}}
+@media (max-width:520px){.repair-svg-wrap,.seq-svg-wrap{height:240px}.repair-controls select,.seq-controls select{width:100%}}
+</style>
+</head>
+<body>
+<header class="wrap">
+  <a href="preview (1).html" class="brand">Biochem <span class="gradient-text">Nexus</span></a>
+</header>
+<main class="wrap">
+  <section class="hero">
+    <div class="hero-content">
+      <h1>Welcome to DNA Explorer</h1>
+      <h2>Interact with the double helix, discover base pairing, and visualize how mutations ripple through sequence structure.</h2>
+      <p>This module is the next step from the homepage: a focused learning space for DNA fundamentals, sequencing patterns, and real-time molecular insights.</p>
+      <a href="preview (1).html" class="btn btn-primary">Return to Homepage</a>
+      <div class="card">
+        <h3>What you can do here</h3>
+        <ul>
+          <li>Trace nucleotide pairs and hydrogen bonds in an intuitive DNA model</li>
+          <li>Explore sequence editing and mutation effects</li>
+          <li>See how GC content and base pairing influence stability</li>
+        </ul>
+      </div>
+      <p class="footer-note">If you reached this page from the hero CTA or the DNA Explorer card, the navigation is working as expected.</p>
+    </div>
+  </section>
+  <!-- DNA Simulators -->
+  <!-- Redesigned Replication Simulator (guided tutorial card) -->
+  <section id="replication-simulator" class="sim-section card" aria-labelledby="replication-title">
+    <div class="sim-header">
+      <h3 id="replication-title">DNA Replication — Interactive Laboratory</h3>
+      <div class="sim-actions">
+        <button class="icon-btn" id="rep-info" aria-label="Replication information">ℹ️</button>
+        <button class="icon-btn" id="rep-howto-toggle" aria-expanded="false">How to use</button>
+      </div>
+    </div>
+    <div id="rep-howto" class="collapsible">
+      <p>Guided mode walks you through replication step-by-step. Use controls or let the simulator play automatically. Click any label to learn more. Toggle enzyme panel to inspect molecular machines.</p>
+    </div>
+    <div class="sim-grid">
+      <div class="sim-canvas card-glass" id="replication-canvas" role="region" aria-label="DNA replication visualization">
+        <div id="rep-svg-wrap" class="rep-svg-wrap" aria-hidden="false"></div>
+        <div id="rep-particles" aria-hidden="true"></div>
+        <div id="rep-tooltips" class="tooltip" aria-hidden="true"></div>
+      </div>
+      <aside class="sim-panel rep-sidebar" id="rep-sidebar">
+        <div class="stepper">
+          <div id="rep-step-indicator">Step <strong id="rep-step-current">0</strong> of <strong id="rep-step-total">12</strong></div>
+          <div class="progress-pill"><progress id="rep-progress" max="12" value="0"></progress></div>
+        </div>
+        <div class="controls">
+          <button id="rep-prev" class="btn">Previous</button>
+          <button id="rep-play" class="btn">Play</button>
+          <button id="rep-pause" class="btn">Pause</button>
+          <button id="rep-next" class="btn">Next</button>
+          <button id="rep-reset" class="btn">Reset</button>
+        </div>
+        <div class="rep-info">
+          <div><strong>Current Stage:</strong> <span id="rep-stage-title">Idle</span></div>
+          <div><strong>Active Enzyme:</strong> <span id="rep-active-enzyme">—</span></div>
+        </div>
+        <div id="rep-explain" class="explanation muted" aria-live="polite">Stage explanations appear here.</div>
+        <div class="rep-facts card-glass">
+          <button id="rep-facts-toggle" class="icon-btn">Replication Facts</button>
+          <div id="rep-facts" class="collapsible">
+            <h4>Replication Facts</h4>
+            <ul>
+              <li>Replication is semi-conservative.</li>
+              <li>Synthesis proceeds 5' → 3'.</li>
+              <li>Okazaki fragments form on the lagging strand.</li>
+            </ul>
+            <p class="muted">Click "More" for clinical relevance and common exam tips.</p>
+            <button id="rep-facts-more" class="btn">More</button>
+          </div>
+        </div>
+        <div class="enzyme-panel card-glass">
+          <h4>Enzymes</h4>
+          <div id="rep-enzyme-list" class="rep-enzyme-list">
+            <!-- enzymes injected by JS -->
+          </div>
+        </div>
+      </aside>
+    </div>
+    <div id="replication-explanation" class="explanation muted">Stage explanations will appear here as the simulation progresses.</div>
+
+    <!-- Quiz appended to the replication section -->
+    <div id="rep-quiz" class="card-glass" aria-labelledby="rep-quiz-title">
+      <h4 id="rep-quiz-title">Replication Quiz</h4>
+      <div id="rep-quiz-area">
+        <!-- quiz UI injected by JS -->
+      </div>
+    </div>
+
+    <!-- Info card (replaces alert popups) -->
+    <div id="rep-info-card" class="rep-info-card" role="dialog" aria-hidden="true" aria-labelledby="rep-info-title">
+      <div class="rep-info-inner card-glass">
+        <button class="icon-btn" id="rep-info-close" aria-label="Close">✕</button>
+        <h4 id="rep-info-title">Replication Info</h4>
+        <div id="rep-info-content" class="rep-info-content muted"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Redesigned Mutation Simulator -->
+  <section id="mutation-simulator" class="sim-section card" aria-labelledby="mutation-title">
+    <div class="sim-header">
+      <h3 id="mutation-title">DNA Mutation Simulator — Visual</h3>
+      <div class="sim-actions">
+        <button class="icon-btn" id="mut-info" aria-label="Mutation information">ℹ️</button>
+        <button class="icon-btn" id="mut-howto-toggle" aria-expanded="false">How to use</button>
+      </div>
+    </div>
+    <div id="mut-howto" class="collapsible">
+      <p>Choose a mutation type and position, then apply. Watch the animated change and learn about protein effects.</p>
+    </div>
+    <div class="mut-grid">
+      <div class="mut-sequence card-glass">
+        <label for="input-seq">Original DNA (5'→3'):</label>
+        <textarea id="input-seq" rows="2">ATGCGTACGTTAGCCTAG</textarea>
+        <div class="mut-controls">
+          <select id="mut-type">
+            <option value="sub">Substitution</option>
+            <option value="ins">Insertion</option>
+            <option value="del">Deletion</option>
+          </select>
+          <input id="mut-pos" type="number" min="1" value="5" aria-label="Position (1-based)" />
+          <input id="mut-base" type="text" maxlength="3" value="A" aria-label="Base(s)" />
+          <button id="mut-apply" class="btn">Apply Mutation</button>
+          <button id="mut-reset" class="btn">Reset</button>
+        </div>
+      </div>
+      <div class="mut-preview card-glass">
+        <div class="mut-visuals">
+          <div class="mut-col">
+            <h4>Original</h4>
+            <div id="before-seq" class="sequence-row" aria-live="polite"></div>
+            <h5>Protein</h5>
+            <pre id="protein-before" class="mono"></pre>
+          </div>
+          <div class="mut-col">
+            <h4>Mutated</h4>
+            <div id="after-seq" class="sequence-row" aria-live="polite"></div>
+            <h5>Protein</h5>
+            <pre id="protein-after" class="mono"></pre>
+          </div>
+        </div>
+        <div id="mutation-class" class="mut-result muted"></div>
+        <div id="mutation-summary" class="mut-summary muted"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- New: DNA Sequence Challenge -->
+  <section id="sequence-challenge" class="sim-section card" aria-labelledby="challenge-title">
+    <div class="sim-header">
+      <h3 id="challenge-title">DNA Sequence Challenge</h3>
+      <div class="sim-actions"><button id="challenge-new" class="btn">Try Another Challenge</button></div>
+    </div>
+    <div class="challenge-grid card-glass">
+      <div>
+        <p id="challenge-seq" class="mono"></p>
+        <label>Complementary strand:</label>
+        <input id="challenge-comp" type="text" />
+        <label>RNA transcript:</label>
+        <input id="challenge-rna" type="text" />
+        <label>Mutation type:</label>
+        <select id="challenge-mtype"><option value="none">None</option><option value="sub">Substitution</option><option value="ins">Insertion</option><option value="del">Deletion</option></select>
+        <button id="challenge-submit" class="btn">Submit</button>
+      </div>
+      <div>
+        <div id="challenge-feedback" class="mut-summary muted"></div>
+        <div id="challenge-score">Score: <span id="challenge-points">0</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRANSCRIPTION SIMULATOR -->
+  <section id="transcription-simulator" class="sim-section card" aria-labelledby="tx-title">
+    <div class="sim-header">
+      <h3 id="tx-title">DNA Transcription Simulator — Interactive Lab</h3>
+      <div class="sim-actions"><button id="tx-info" class="icon-btn">ℹ️</button><button id="tx-howto-toggle" class="icon-btn">How to use</button></div>
+    </div>
+    <div id="tx-howto" class="collapsible">
+      <p>Step through initiation, elongation and termination. Click molecules to learn more. Toggle labels and zoom into the transcription bubble.</p>
+    </div>
+    <div class="sim-grid">
+      <div class="sim-canvas card-glass">
+        <div id="tx-svg-wrap" class="tx-svg-wrap" aria-hidden="false"></div>
+        <div id="tx-tooltips" class="tooltip" aria-hidden="true"></div>
+      </div>
+      <aside class="sim-panel">
+        <div class="stepper">
+          <div id="tx-step-indicator">Stage <strong id="tx-step-current">0</strong> / <strong id="tx-step-total">9</strong></div>
+          <div class="progress-pill"><progress id="tx-progress" max="9" value="0"></progress></div>
+        </div>
+        <div class="tx-controls controls">
+          <button id="tx-prev" class="btn">Prev</button>
+          <button id="tx-play" class="btn">Play</button>
+          <button id="tx-pause" class="btn">Pause</button>
+          <button id="tx-next" class="btn">Next</button>
+          <button id="tx-reset" class="btn">Reset</button>
+        </div>
+        <div class="info-panel">
+          <div><strong>Stage:</strong> <span id="tx-stage-title">Idle</span></div>
+          <div id="tx-explain" class="explanation muted">Explanations appear here.</div>
+        </div>
+        <div class="card-glass">
+          <h4>Transcription Quick Tips</h4>
+          <div class="glossary">
+            <div><span class="term">Template Strand:</span> used by RNA Pol to build mRNA (3'→5').</div>
+            <div><span class="term">Coding Strand:</span> same sequence as mRNA (5'→3') except T→U.</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+    <div id="tx-quiz" class="card-glass">
+      <h4>Transcription Quiz</h4>
+      <div id="tx-quiz-area"></div>
+    </div>
+  </section>
+
+  <!-- TRANSLATION SIMULATOR -->
+  <section id="translation-simulator" class="sim-section card" aria-labelledby="tl-title">
+    <div class="sim-header">
+      <h3 id="tl-title">Protein Translation Simulator — Interactive Lab</h3>
+      <div class="sim-actions"><button id="tl-info" class="icon-btn">ℹ️</button><button id="tl-howto-toggle" class="icon-btn">How to use</button></div>
+    </div>
+    <div id="tl-howto" class="collapsible">
+      <p>Observe mRNA decoding, tRNA delivery, peptide bond formation and termination. Click ribosomal subunits and tRNA for details.</p>
+    </div>
+    <div class="sim-grid">
+      <div class="sim-canvas card-glass">
+        <div id="tl-svg-wrap" class="tl-svg-wrap" aria-hidden="false"></div>
+        <div id="tl-tooltips" class="tooltip" aria-hidden="true"></div>
+      </div>
+      <aside class="sim-panel">
+        <div class="stepper">
+          <div id="tl-step-indicator">Stage <strong id="tl-step-current">0</strong> / <strong id="tl-step-total">8</strong></div>
+          <div class="progress-pill"><progress id="tl-progress" max="8" value="0"></progress></div>
+        </div>
+        <div class="tl-controls controls">
+          <button id="tl-prev" class="btn">Prev</button>
+          <button id="tl-play" class="btn">Play</button>
+          <button id="tl-pause" class="btn">Pause</button>
+          <button id="tl-next" class="btn">Next</button>
+          <button id="tl-reset" class="btn">Reset</button>
+        </div>
+        <div class="info-panel">
+          <div><strong>Stage:</strong> <span id="tl-stage-title">Idle</span></div>
+          <div id="tl-explain" class="explanation muted">Explanations appear here.</div>
+        </div>
+        <div class="card-glass">
+          <h4>Translation Highlights</h4>
+          <div class="glossary">
+            <div><span class="term">Start Codon:</span> AUG (Met) — ribosome assembly point.</div>
+            <div><span class="term">Stop Codons:</span> UAA, UAG, UGA — termination signals.</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+    <div id="tl-quiz" class="card-glass">
+      <h4>Translation Quiz</h4>
+      <div id="tl-quiz-area"></div>
+    </div>
+  </section>
+  <!-- DNA REPAIR MECHANISMS MODULE -->
+  <section id="repair-simulator" class="sim-section card" aria-labelledby="repair-title">
+    <div class="sim-header">
+      <h3 id="repair-title">DNA Repair Mechanisms — Interactive Lab</h3>
+      <div class="sim-actions"><button id="repair-info" class="icon-btn">ℹ️</button><button id="repair-howto-toggle" class="icon-btn">How to use</button></div>
+    </div>
+    <div id="repair-howto" class="collapsible"><p>Explore MMR, BER, NER, DSB repair including HR and NHEJ with step-by-step animations. Click enzymes to learn details.</p></div>
+    <div class="sim-grid">
+      <div class="sim-canvas card-glass">
+        <div id="repair-svg-wrap" class="repair-svg-wrap" aria-hidden="false"></div>
+      </div>
+      <aside class="sim-panel">
+        <div class="stepper"><div id="repair-step-indicator">Stage <strong id="repair-step-current">0</strong> / <strong id="repair-step-total">6</strong></div><div class="progress-pill"><progress id="repair-progress" max="6" value="0"></progress></div></div>
+        <div class="repair-controls controls"><select id="repair-select"><option value="mmr">Mismatch Repair (MMR)</option><option value="ber">Base Excision Repair (BER)</option><option value="ner">Nucleotide Excision Repair (NER)</option><option value="dsb-hr">Double-Strand Break (HR)</option><option value="dsb-nhej">Double-Strand Break (NHEJ)</option></select>
+          <button id="repair-prev" class="btn">Prev</button><button id="repair-play" class="btn">Play</button><button id="repair-pause" class="btn">Pause</button><button id="repair-next" class="btn">Next</button><button id="repair-reset" class="btn">Reset</button></div>
+        <div class="info-panel"><div><strong>Stage:</strong> <span id="repair-stage-title">Idle</span></div><div id="repair-explain" class="explanation muted">Select a repair pathway to begin.</div></div>
+        <div class="card-glass"><h4>Enzymes</h4><div id="repair-enzyme-list" class="rep-enzyme-list"></div></div>
+      </aside>
+    </div>
+    <div id="repair-quiz" class="card-glass"><h4>Repair Quiz</h4><div id="repair-quiz-area"></div></div>
+  </section>
+
+  <!-- DNA SEQUENCING TECHNOLOGIES MODULE -->
+  <section id="sequencing-simulator" class="sim-section card" aria-labelledby="seq-title">
+    <div class="sim-header"><h3 id="seq-title">DNA Sequencing Technologies — Interactive Lab</h3><div class="sim-actions"><button id="seq-info" class="icon-btn">ℹ️</button><button id="seq-howto-toggle" class="icon-btn">How to use</button></div></div>
+    <div id="seq-howto" class="collapsible"><p>Compare Sanger, NGS, WGS and WES workflows with interactive diagrams. Click steps to see reagents and enzymes.</p></div>
+    <div class="sim-grid">
+      <div class="sim-canvas card-glass">
+        <div id="seq-svg-wrap" class="seq-svg-wrap" aria-hidden="false"></div>
+      </div>
+      <aside class="sim-panel">
+        <div class="stepper"><div id="seq-step-indicator">Topic <strong id="seq-topic-current">Sanger</strong></div></div>
+        <div class="seq-controls controls"><select id="seq-select"><option value="sanger">Sanger Sequencing</option><option value="ngs">Next-Generation Sequencing (NGS)</option><option value="wgs">Whole Genome Sequencing (WGS)</option><option value="wes">Whole Exome Sequencing (WES)</option></select>
+          <button id="seq-zoom" class="btn">Zoom</button><button id="seq-reset" class="btn">Reset</button></div>
+        <div class="info-panel"><div><strong>Topic:</strong> <span id="seq-stage-title">Sanger Sequencing</span></div><div id="seq-explain" class="explanation muted">Select a sequencing technology to explore its workflow.</div></div>
+      </aside>
+    </div>
+    <div id="seq-quiz" class="card-glass"><h4>Sequencing Quiz</h4><div id="seq-quiz-area"></div></div>
+  </section>
+</main>
+<script type="module">
+// Modular simulators: Guided Replication, Animated Mutation, Sequence Challenge
+const UTIL = {
+  sanitize(seq){ return (seq||'').toUpperCase().replace(/[^ACGT]/g,''); },
+  complement(seq){ return this.sanitize(seq).split('').map(b=>({A:'T',T:'A',C:'G',G:'C'}[b]||'N')).join(''); },
+  transcribe(seq){ return this.sanitize(seq).replace(/T/g,'U'); },
+  translate(dna){
+    const table = {ATA:'I',ATC:'I',ATT:'I',ATG:'M',ACA:'T',ACC:'T',ACG:'T',ACT:'T',AAC:'N',AAT:'N',AAA:'K',AAG:'K',AGC:'S',AGT:'S',AGA:'R',AGG:'R',CTA:'L',CTC:'L',CTG:'L',CTT:'L',CCA:'P',CCC:'P',CCG:'P',CCT:'P',CAC:'H',CAT:'H',CAA:'Q',CAG:'Q',CGA:'R',CGC:'R',CGG:'R',CGT:'R',GTA:'V',GTC:'V',GTG:'V',GTT:'V',GCA:'A',GCC:'A',GCG:'A',GCT:'A',GAC:'D',GAT:'D',GAA:'E',GAG:'E',GGA:'G',GGC:'G',GGG:'G',GGT:'G',TCA:'S',TCC:'S',TCG:'S',TCT:'S',TTC:'F',TTT:'F',TTA:'L',TTG:'L',TAC:'Y',TAT:'Y',TAA:'*',TAG:'*',TGC:'C',TGT:'C',TGA:'*',TGG:'W'};
+    let aa=''; dna = this.sanitize(dna);
+    for(let i=0;i+2<dna.length;i+=3){ const codon = dna.substring(i,i+3); aa += (table[codon]||'?'); if(table[codon]=='*') break; }
+    return aa;
+  }
+};
+
+class ReplicationSimulator {
+  constructor(){
+    // DOM refs
+    this.wrap = document.getElementById('rep-svg-wrap'); this.canvas = document.getElementById('replication-canvas');
+    this.progress = document.getElementById('rep-progress'); this.stepCur = document.getElementById('rep-step-current'); this.stepTot = document.getElementById('rep-step-total');
+    this.stageTitle = document.getElementById('rep-stage-title'); this.activeEnzymeEl = document.getElementById('rep-active-enzyme'); this.explain = document.getElementById('rep-explain');
+    this.prevBtn = document.getElementById('rep-prev'); this.nextBtn = document.getElementById('rep-next'); this.playBtn = document.getElementById('rep-play'); this.pauseBtn = document.getElementById('rep-pause'); this.resetBtn = document.getElementById('rep-reset');
+    this.factsToggle = document.getElementById('rep-facts-toggle'); this.facts = document.getElementById('rep-facts'); this.factsMore = document.getElementById('rep-facts-more');
+    this.infoCard = document.getElementById('rep-info-card'); this.infoContent = document.getElementById('rep-info-content'); this.infoClose = document.getElementById('rep-info-close'); this.infoBtn = document.getElementById('rep-info');
+    this.enzymeListContainer = document.getElementById('rep-enzyme-list'); this.quizArea = document.getElementById('rep-quiz-area');
+
+    // Define enzymes with information and the step where they become active
+    this.enzymes = [
+      {id:'helicase', name:'Helicase', full:'DNA Helicase', step:2, location:'Replication fork', importance:'Unwinds DNA double helix', tip:'ATP-dependent motor protein'},
+      {id:'topo', name:'Topoisomerase', full:'DNA Gyrase (Topoisomerase)', step:3, location:'Ahead of fork', importance:'Relieves supercoiling', tip:'Creates transient breaks'},
+      {id:'ssb', name:'SSB', full:'Single-Strand Binding proteins', step:4, location:'Single-stranded DNA', importance:'Stabilizes ssDNA', tip:'Prevents re-annealing'},
+      {id:'primase', name:'Primase', full:'RNA Primase', step:5, location:'Lagging and leading strands', importance:'Synthesizes RNA primers', tip:'Provides 3\'-OH for polymerase'},
+      {id:'pol3', name:'DNA Pol III', full:'DNA Polymerase III', step:6, location:'Replication fork', importance:'Main replicative polymerase', tip:'Highly processive'},
+      {id:'pol1', name:'DNA Pol I', full:'DNA Polymerase I', step:10, location:'Okazaki fragments', importance:'Removes RNA primers & fills gaps', tip:'Has 5\'-3\' exonuclease'},
+      {id:'ligase', name:'Ligase', full:'DNA Ligase', step:11, location:'Backbone nicks', importance:'Seals nicks to complete backbone', tip:'Forms phosphodiester bond'}
+    ];
+
+    // Learning steps (12 steps as requested)
+    this.steps = [
+      {id:1,title:'Origin of Replication',desc:'Replication initiates at specific origin sequence.'},
+      {id:2,title:'Helicase unzips',desc:'Helicase separates the two strands by breaking hydrogen bonds.'},
+      {id:3,title:'Topoisomerase relieves tension',desc:'Topoisomerase prevents supercoiling ahead of fork.'},
+      {id:4,title:'SSB stabilizes strands',desc:'SSBs bind single strands to prevent reannealing.'},
+      {id:5,title:'Primase lays RNA primers',desc:'Primase synthesizes short RNA primers.'},
+      {id:6,title:'DNA Polymerase III extends DNA',desc:'DNA Pol III extends from primers.'},
+      {id:7,title:'Leading strand synthesis',desc:'Leading strand is synthesized continuously.'},
+      {id:8,title:'Lagging strand synthesis',desc:'Lagging strand synthesized as Okazaki fragments.'},
+      {id:9,title:'Okazaki fragment formation',desc:'Short fragments are produced and later joined.'},
+      {id:10,title:'Primer removal by DNA Pol I',desc:'DNA Pol I removes RNA primers and fills gaps.'},
+      {id:11,title:'DNA Ligase seals backbone',desc:'Ligase joins Okazaki fragments to form continuous strand.'},
+      {id:12,title:'Replication completed',desc:'Two daughter molecules are produced.'}
+    ];
+
+    this.index = 0; this.autoId = null;
+    this._buildCanvas(); this._renderEnzymeList(); this._wireControls(); this._renderQuiz(); this._goto(0);
+  }
+
+  // Build SVG canvas with labeled groups for interactive highlights
+  _buildCanvas(){
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(NS,'svg'); svg.setAttribute('viewBox','0 0 900 360'); svg.setAttribute('preserveAspectRatio','xMidYMid meet'); svg.classList.add('rep-svg');
+
+    // two strands as paths
+    const strandTop = document.createElementNS(NS,'path'); const strandBottom = document.createElementNS(NS,'path');
+    const topPts=[]; const botPts=[];
+    for(let x=0;x<=900;x+=18){ const t=(x/900)*Math.PI*4; topPts.push(`${x},${180+Math.sin(t)*60}`); botPts.push(`${x},${180+Math.sin(t+Math.PI)*60}`); }
+    strandTop.setAttribute('d','M'+topPts.join(' L ')); strandTop.setAttribute('stroke','#A8F0FF'); strandTop.setAttribute('fill','none'); strandTop.setAttribute('stroke-width','3'); strandTop.setAttribute('id','strand-top');
+    strandBottom.setAttribute('d','M'+botPts.join(' L ')); strandBottom.setAttribute('stroke','#9AF1D3'); strandBottom.setAttribute('fill','none'); strandBottom.setAttribute('stroke-width','3'); strandBottom.setAttribute('id','strand-bottom');
+
+    // base pair connectors group
+    const pairs = document.createElementNS(NS,'g'); pairs.setAttribute('id','pairs'); pairs.setAttribute('stroke','rgba(255,255,255,0.06)');
+    for(let x=50;x<850;x+=50){ const t=(x/900)*Math.PI*4; const y1=180+Math.sin(t)*60; const y2=180+Math.sin(t+Math.PI)*60; const l=document.createElementNS(NS,'line'); l.setAttribute('x1',x); l.setAttribute('y1',y1); l.setAttribute('x2',x); l.setAttribute('y2',y2); l.setAttribute('stroke-width','2'); l.setAttribute('class','hydrogen'); pairs.appendChild(l); }
+
+    // replication fork marker
+    const fork = document.createElementNS(NS,'g'); fork.setAttribute('id','rep-fork'); const forkLine = document.createElementNS(NS,'line'); forkLine.setAttribute('x1',420); forkLine.setAttribute('x2',420); forkLine.setAttribute('y1',0); forkLine.setAttribute('y2',360); forkLine.setAttribute('stroke','rgba(255,255,255,0.03)'); forkLine.setAttribute('stroke-dasharray','6 6'); fork.appendChild(forkLine);
+
+    // labels for interactive structures
+    const labels = [ {id:'origin',x:200,y:60,text:'Origin'}, {id:'fork-label',x:420,y:40,text:'Replication Fork'}, {id:'leading',x:560,y:220,text:'Leading Strand'}, {id:'lagging',x:300,y:220,text:'Lagging Strand'} ];
+    const labelGroup = document.createElementNS(NS,'g'); labelGroup.setAttribute('id','labels');
+    labels.forEach(l=>{ const g=document.createElementNS(NS,'g'); g.setAttribute('class','rep-label'); g.setAttribute('data-label',l.id); const rect=document.createElementNS(NS,'rect'); rect.setAttribute('x',l.x-6); rect.setAttribute('y',l.y-14); rect.setAttribute('width',l.text.length*10+12); rect.setAttribute('height',22); rect.setAttribute('rx',6); rect.setAttribute('fill','rgba(0,0,0,0.3)'); const text=document.createElementNS(NS,'text'); text.setAttribute('x',l.x+6); text.setAttribute('y',l.y); text.setAttribute('fill','white'); text.setAttribute('font-size','12'); text.setAttribute('font-family','Inter, sans-serif'); text.textContent = l.text; g.appendChild(rect); g.appendChild(text); labelGroup.appendChild(g); });
+
+    // groups for primers, okazaki, newDNA
+    const primers = document.createElementNS(NS,'g'); primers.setAttribute('id','primers');
+    const okazaki = document.createElementNS(NS,'g'); okazaki.setAttribute('id','okazaki');
+    const newDNA = document.createElementNS(NS,'g'); newDNA.setAttribute('id','newdna');
+
+    svg.appendChild(strandTop); svg.appendChild(strandBottom); svg.appendChild(pairs); svg.appendChild(fork); svg.appendChild(primers); svg.appendChild(okazaki); svg.appendChild(newDNA); svg.appendChild(labelGroup);
+    this.wrap.innerHTML = ''; this.wrap.appendChild(svg); this.svg = svg;
+
+    // simple mask to simulate unzipping (rectangle overlay width)
+    // create a translucent rect overlay for unzipped area
+    const overlay = document.createElementNS(NS,'rect'); overlay.setAttribute('id','rep-unzip'); overlay.setAttribute('x',0); overlay.setAttribute('y',0); overlay.setAttribute('width',0); overlay.setAttribute('height',360); overlay.setAttribute('fill','rgba(8,20,28,0.45)'); overlay.setAttribute('pointer-events','none'); svg.appendChild(overlay); this.overlay = overlay;
+  }
+
+  _renderEnzymeList(){
+    // render enzyme cards with icons
+    this.enzymeListContainer.innerHTML='';
+    this.enzymes.forEach(e=>{
+      const div = document.createElement('div'); div.className='rep-enzyme'; div.dataset.id = e.id; div.setAttribute('tabindex','0');
+      div.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="rgba(255,255,255,0.03)"/></svg><div><strong>${e.name}</strong><div class="muted" style="font-size:12px">${e.full}</div></div>`;
+      div.addEventListener('click',()=>this._focusEnzyme(e.id)); div.addEventListener('keydown', (ev)=>{ if(ev.key==='Enter') this._focusEnzyme(e.id); });
+      this.enzymeListContainer.appendChild(div);
+    });
+  }
+
+  _wireControls(){
+    this.prevBtn.addEventListener('click', ()=>this.prev()); this.nextBtn.addEventListener('click', ()=>this.next());
+    this.playBtn.addEventListener('click', ()=>this.play()); this.pauseBtn.addEventListener('click', ()=>this.pause()); this.resetBtn.addEventListener('click', ()=>this.reset());
+    this.factsToggle.addEventListener('click', ()=> this.facts.classList.toggle('open'));
+    this.factsMore.addEventListener('click', ()=> this._showInfo('Clinical relevance', 'Replication errors can lead to cancer; proofreading and repair are critical.\n\nExam Tip: DNA repair pathways maintain genome integrity.'));
+    if(this.infoBtn) this.infoBtn.addEventListener('click', ()=> this._showInfo('DNA Replication', 'Guided interactive lab: step through origin, helicase, primase, polymerases, and ligase. Use controls or play to observe each stage.'));
+    if(this.infoClose) this.infoClose.addEventListener('click', ()=> this._closeInfo());
+    // interactive labels inside SVG
+    this.wrap.addEventListener('click', (e)=>{ const label = e.target.closest('.rep-label'); if(label) this._openLabelInfo(label.dataset.label); });
+  }
+
+  // focus enzyme from list
+  _focusEnzyme(id){ const en = this.enzymes.find(x=>x.id===id); if(!en) return; // highlight card
+    this.enzymeListContainer.querySelectorAll('.rep-enzyme').forEach(n=>n.classList.toggle('active', n.dataset.id===id));
+    // show active enzyme and explanation
+    this.activeEnzymeEl.textContent = en.full; this._glowElementForEnzyme(id);
+  }
+
+  _glowElementForEnzyme(id){ // map enzyme id to SVG target
+    // remove existing highlights
+    this.svg.querySelectorAll('.rep-highlight').forEach(n=>n.classList.remove('rep-highlight'));
+    let target = null;
+    switch(id){
+      case 'helicase': target = this.svg.querySelector('#rep-fork'); break;
+      case 'topo': target = this.svg.querySelector('#pairs'); break;
+      case 'ssb': target = this.svg.querySelector('#strand-top'); break;
+      case 'primase': target = this.svg.querySelector('#primers'); break;
+      case 'pol3': target = this.svg.querySelector('#newdna'); break;
+      case 'pol1': target = this.svg.querySelector('#okazaki'); break;
+      case 'ligase': target = this.svg.querySelector('#newdna'); break;
+    }
+    if(target) target.classList.add('rep-highlight');
+  }
+
+  _openLabelInfo(id){ // show small info card for clicked label
+    const map = {
+      origin:{title:'Origin of Replication',text:'Specific sequence where replication starts.'},
+      'fork-label':{title:'Replication Fork',text:'Y-shaped structure where DNA is unwound.'},
+      leading:{title:'Leading Strand',text:'Synthesized continuously 5\'→3\''},
+      lagging:{title:'Lagging Strand',text:'Synthesized as Okazaki fragments.'}
+    };
+    const info = map[id]; if(!info) return; this._showInfo(info.title, info.text + '\n\nExam Tip: remember directionality and template orientation.');
+  }
+
+  _showInfo(title, text){ if(!this.infoCard || !this.infoContent) return; this.infoContent.innerHTML = `<strong>${title}</strong><p style="margin-top:8px;white-space:pre-wrap">${text}</p>`; this.infoCard.classList.add('open'); this.infoCard.setAttribute('aria-hidden','false'); }
+  _closeInfo(){ if(!this.infoCard) return; this.infoCard.classList.remove('open'); this.infoCard.setAttribute('aria-hidden','true'); }
+
+  _goto(i){ // move to step index (0..steps.length)
+    this.index = Math.max(0, Math.min(this.steps.length, i));
+    const step = this.steps[this.index] || {title:'Idle',desc:''};
+    this.stepCur.textContent = this.index; this.stepTot.textContent = this.steps.length; this.progress.max = this.steps.length; this.progress.value = this.index;
+    this.stageTitle.textContent = step.title || 'Idle'; this.explain.textContent = step.desc || '';
+    // update enzyme activation
+    const active = this.enzymes.filter(e=>e.step===this.index).map(e=>e.id)[0] || null;
+    this.activeEnzymeEl.textContent = active ? (this.enzymes.find(e=>e.id===active).full) : '—';
+    if(active) this._focusEnzyme(active);
+    // animate overlay to represent unzipping progress
+    const pct = this.index / this.steps.length; const svgW = 900; const w = Math.round(pct * svgW);
+    this.overlay.setAttribute('width', String(w));
+    // show primers/Okazaki/newDNA at specific steps
+    this._renderStepVisuals(this.index);
+  }
+
+  _renderStepVisuals(index){ // simple visuals per step
+    const NS='http://www.w3.org/2000/svg'; const primers = this.svg.querySelector('#primers'); const okazaki = this.svg.querySelector('#okazaki'); const newdna = this.svg.querySelector('#newdna'); primers.innerHTML=''; okazaki.innerHTML=''; newdna.innerHTML='';
+    if(index>=5){ // primers present
+      // create small primer blocks near positions
+      for(let x=480;x<760;x+=80){ const r=document.createElementNS(NS,'rect'); r.setAttribute('x',x); r.setAttribute('y',120); r.setAttribute('width',12); r.setAttribute('height',10); r.setAttribute('fill','#FFD6A6'); primers.appendChild(r); }
+    }
+    if(index>=8){ // Okazaki fragments
+      for(let x=260;x<460;x+=60){ const g=document.createElementNS(NS,'rect'); g.setAttribute('x',x); g.setAttribute('y',200); g.setAttribute('width',28); g.setAttribute('height',8); g.setAttribute('fill','#C6F1FF'); okazaki.appendChild(g); }
+    }
+    if(index>=6){ // new DNA segments appear
+      for(let x=500;x<760;x+=60){ const d=document.createElementNS(NS,'rect'); d.setAttribute('x',x); d.setAttribute('y',150); d.setAttribute('width',18); d.setAttribute('height',6); d.setAttribute('fill','#A8FFD8'); newdna.appendChild(d); }
+    }
+  }
+
+  next(){ this._goto(this.index+1); }
+  prev(){ this._goto(this.index-1); }
+  play(){ if(this.autoId) return; this.autoId = setInterval(()=>{ if(this.index>=this.steps.length) this.pause(); else this.next(); }, 1000); }
+  pause(){ if(this.autoId){ clearInterval(this.autoId); this.autoId=null; } }
+  reset(){ this.pause(); this._goto(0); this.enzymeListContainer.querySelectorAll('.rep-enzyme').forEach(n=>n.classList.remove('active')); this.activeEnzymeEl.textContent='—'; }
+
+  // Render a basic quiz module for replication
+  _renderQuiz(){
+    this.quizArea.innerHTML = '';
+    // MCQ example
+    const q1 = document.createElement('div'); q1.className='rep-quiz'; q1.innerHTML = `<div class="quiz-q"><strong>Q1.</strong> Which enzyme relieves supercoiling ahead of the fork?</div>`;
+    const opts = ['Helicase','Topoisomerase','DNA Ligase','Primase']; opts.forEach(o=>{ const b = document.createElement('button'); b.className='btn'; b.style.marginRight='8px'; b.textContent=o; b.addEventListener('click', ()=>{ alert(o === 'Topoisomerase' ? 'Correct — Topoisomerase relieves tension.' : 'Incorrect — try again.'); }); q1.appendChild(b); });
+    this.quizArea.appendChild(q1);
+
+    // Enzyme matching (drag-drop)
+    const match = document.createElement('div'); match.className='rep-quiz'; match.innerHTML = `<div class="quiz-q"><strong>Match the enzyme to its function:</strong></div>`;
+    const items = document.createElement('div'); items.className='match-area'; const source = document.createElement('div'); source.style.flex='1'; const target = document.createElement('div'); target.style.flex='1';
+    const draggable = document.createElement('div'); draggable.className='draggable'; draggable.textContent='Ligase'; draggable.draggable=true; draggable.id='drag-ligase'; source.appendChild(draggable);
+    const dropzone = document.createElement('div'); dropzone.className='draggable'; dropzone.textContent='Seals nicks'; dropzone.id='drop-1'; dropzone.addEventListener('dragover',(e)=>e.preventDefault()); dropzone.addEventListener('drop', (e)=>{ e.preventDefault(); const data = e.dataTransfer.getData('text'); const fb = document.createElement('div'); fb.className='mut-summary muted'; if(data==='drag-ligase'){ fb.textContent = 'Correct — Ligase seals nicks.'; } else { fb.textContent = 'Try again.'; } match.appendChild(fb); });
+    draggable.addEventListener('dragstart',(e)=>e.dataTransfer.setData('text', e.target.id)); items.appendChild(source); items.appendChild(target); target.appendChild(dropzone); match.appendChild(items); this.quizArea.appendChild(match);
+  }
+}
+
+class MutationSimulator {
+  constructor(){
+    this.input = document.getElementById('input-seq'); this.type = document.getElementById('mut-type'); this.pos = document.getElementById('mut-pos'); this.base = document.getElementById('mut-base');
+    this.applyBtn = document.getElementById('mut-apply'); this.resetBtn = document.getElementById('mut-reset');
+    this.beforeEl = document.getElementById('before-seq'); this.afterEl = document.getElementById('after-seq');
+    this.protBefore = document.getElementById('protein-before'); this.protAfter = document.getElementById('protein-after'); this.mutClassEl = document.getElementById('mutation-class'); this.summary = document.getElementById('mutation-summary');
+    this.howtoToggle = document.getElementById('mut-howto-toggle'); this.howto = document.getElementById('mut-howto'); this.infoBtn = document.getElementById('mut-info');
+    this.orig = UTIL.sanitize(this.input.value || 'ATGCGTACGTTAGCCTAG'); this._renderBefore(); this._wire();
+  }
+  _wire(){ this.applyBtn.addEventListener('click', ()=>this.apply()); this.resetBtn.addEventListener('click', ()=>this.reset()); this.howtoToggle.addEventListener('click', ()=>{ const open=this.howto.classList.toggle('open'); this.howtoToggle.setAttribute('aria-expanded', String(open)); }); this.infoBtn.addEventListener('click', ()=>{ const card=document.getElementById('rep-info-card'); const content=document.getElementById('rep-info-content'); if(card && content){ content.innerHTML = '<strong>Mutations</strong><p style="white-space:pre-wrap;margin-top:8px">Mutations: substitution, insertion, deletion — observe effects on translation.</p>'; card.classList.add('open'); card.setAttribute('aria-hidden','false'); } }); }
+  _renderBefore(){ this._renderSeq(this.orig, this.beforeEl); this.protBefore.textContent = UTIL.translate(this.orig); }
+  _renderSeq(seq, container){ container.innerHTML=''; const s = UTIL.sanitize(seq); for(let i=0;i<s.length;i++){ const span = document.createElement('span'); span.className = 'nuc ' + 'nuc-'+s[i]; span.textContent = s[i]; span.dataset.pos = i+1; container.appendChild(span); } }
+  reset(){ this.input.value = this.orig; this._renderBefore(); this.afterEl.innerHTML=''; this.protAfter.textContent=''; this.mutClassEl.textContent=''; this.summary.textContent=''; }
+  apply(){ const seq = UTIL.sanitize(this.input.value); const pos = Math.max(1, Math.min(seq.length, Number(this.pos.value)||1)); const b = (this.base.value||'A').toUpperCase(); const type = this.type.value; let out = seq;
+    if(type==='sub'){ out = seq.substring(0,pos-1) + (b[0]||'N') + seq.substring(pos); }
+    else if(type==='ins'){ out = seq.substring(0,pos) + (b || 'A') + seq.substring(pos); }
+    else if(type==='del'){ out = seq.substring(0,pos-1) + seq.substring(pos); }
+    // animate: render before and after, add classes to changed bases
+    this._renderSeq(seq, this.beforeEl);
+    // build after with animation
+    this._renderSeq(out, this.afterEl);
+    // highlight differences
+    this._animateDiff(seq, out);
+    // proteins
+    const pBefore = UTIL.translate(seq); const pAfter = UTIL.translate(out);
+    this.protBefore.textContent = pBefore; this.protAfter.textContent = pAfter;
+    const cls = this._classifyMutation(seq, out, pos, type);
+    this.mutClassEl.textContent = cls.label; this.summary.textContent = cls.explain;
+  }
+  _animateDiff(a,b){ const len = Math.max(a.length,b.length); const beforeSpans = Array.from(this.beforeEl.children); const afterSpans = Array.from(this.afterEl.children);
+    for(let i=0;i<len;i++){ const ca=a[i]||''; const cb=b[i]||''; if(ca!==cb){ if(afterSpans[i]){ afterSpans[i].classList.add('animate-change'); setTimeout(()=>afterSpans[i].classList.remove('animate-change'),700); } if(!cb && beforeSpans[i]){ beforeSpans[i].classList.add('animate-delete'); setTimeout(()=>beforeSpans[i].remove(),500); } if(cb && !ca && afterSpans[i]){ afterSpans[i].classList.add('animate-insert'); } } }
+  }
+  _classifyMutation(prev, curr, pos, type){ const res={label:'', explain:''}; if(prev.length===curr.length){ // no frameshift
+      const aa1 = UTIL.translate(prev); const aa2 = UTIL.translate(curr);
+      if(aa1===aa2){ res.label='Silent mutation'; res.explain='A change in the DNA that does not alter the amino-acid sequence.'; }
+      else if(aa2.indexOf('*')!==-1 && aa1.indexOf('*')===-1){ res.label='Nonsense mutation'; res.explain='Introduces a premature stop codon, truncating the protein.'; }
+      else{ res.label='Missense mutation'; res.explain='Changes one amino acid to another, may affect protein function.'; }
+    } else { res.label='Frameshift mutation'; res.explain='Insertion or deletion that shifts the reading frame; usually drastic effects on protein.'; }
+    return res;
+  }
+}
+
+class SequenceChallenge {
+  constructor(){ this.seqEl = document.getElementById('challenge-seq'); this.compIn = document.getElementById('challenge-comp'); this.rnaIn = document.getElementById('challenge-rna'); this.mtype = document.getElementById('challenge-mtype'); this.submit = document.getElementById('challenge-submit'); this.newBtn = document.getElementById('challenge-new'); this.feedback = document.getElementById('challenge-feedback'); this.pointsEl = document.getElementById('challenge-points'); this.score = 0; this.current = null; this._wire(); this._new(); }
+  _wire(){ this.submit.addEventListener('click', ()=>this._check()); this.newBtn.addEventListener('click', ()=>this._new()); }
+  _randSeq(len=12){ const bases=['A','T','C','G']; let s=''; for(let i=0;i<len;i++) s+=bases[Math.floor(Math.random()*4)]; return s; }
+  _new(){ // generate sequence and possible mutation
+    const base = this._randSeq(12); // decide to mutate sometimes
+    const mutate = Math.random()<0.5; let mutated = base; let mtype='none'; if(mutate){ const pos = Math.floor(Math.random()*base.length); const types=['sub','ins','del'][Math.floor(Math.random()*3)]; if(types==='sub'){ const b=['A','T','C','G'].filter(x=>x!==base[pos])[Math.floor(Math.random()*3)]; mutated = base.substring(0,pos)+b+base.substring(pos+1); mtype='sub'; } else if(types==='ins'){ const b=['A','T','C','G'][Math.floor(Math.random()*4)]; mutated = base.substring(0,pos)+b+base.substring(pos); mtype='ins'; } else { mutated = base.substring(0,pos)+base.substring(pos+1); mtype='del'; } }
+    this.current = {base, mutated, mtype}; this.seqEl.textContent = base + (mtype!=='none'?(' → '+mutated):''); this.compIn.value=''; this.rnaIn.value=''; this.mtype.value='none'; this.feedback.textContent='';
+  }
+  _check(){
+    const userComp = UTIL.sanitize(this.compIn.value);
+    const userRna = (this.rnaIn.value||'').toUpperCase().replace(/T/g,'U').replace(/[^AUGC]/g,'');
+    const userM = this.mtype.value;
+    const correctComp = UTIL.complement(this.current.base);
+    const correctRna = UTIL.transcribe(UTIL.sanitize(this.current.base));
+    let scoreDelta=0; let msg='';
+    if(userComp===correctComp){ scoreDelta+=1; msg+='Complement correct.\n'; } else msg+='Complement incorrect.\n';
+    if(userRna===correctRna){ scoreDelta+=1; msg+='RNA correct.\n'; } else msg+='RNA incorrect.\n';
+    if(userM===this.current.mtype){ scoreDelta+=1; msg+='Mutation type correct.\n'; } else msg+='Mutation type incorrect.\n';
+    this.score += scoreDelta; this.pointsEl.textContent = String(this.score);
+    this.feedback.textContent = msg + 'Answer explanation: Complement '+correctComp+', RNA '+correctRna+', Mutation '+this.current.mtype;
+  }
+}
+
+// instantiate
+// --- Transcription Simulator ---
+class TranscriptionSimulator{
+  constructor(){
+    this.wrap = document.getElementById('tx-svg-wrap');
+    this.progress = document.getElementById('tx-progress'); this.stepCur = document.getElementById('tx-step-current'); this.stepTot = document.getElementById('tx-step-total');
+    this.stageTitle = document.getElementById('tx-stage-title'); this.explain = document.getElementById('tx-explain');
+    this.prevBtn = document.getElementById('tx-prev'); this.nextBtn = document.getElementById('tx-next'); this.playBtn = document.getElementById('tx-play'); this.pauseBtn = document.getElementById('tx-pause'); this.resetBtn = document.getElementById('tx-reset');
+    this.infoBtn = document.getElementById('tx-info'); this.howtoToggle = document.getElementById('tx-howto-toggle'); this.howto = document.getElementById('tx-howto');
+    // a short example coding strand (5'->3') used for visuals
+    this.coding = 'ATGGCCATTGTAATGGGCCGCTGAAAGGGTGCCCGATAG';
+    this.mRNA = UTIL.transcribe(this.coding);
+    this.steps = [
+      {id:0,title:'Idle',desc:'Ready'},
+      {id:1,title:'Promoter recognition',desc:'RNA polymerase locates the promoter; transcription factors may assist.'},
+      {id:2,title:'Open complex (bubble)',desc:'DNA strands separate forming the transcription bubble.'},
+      {id:3,title:'Initiation',desc:'RNA polymerase synthesizes first phosphodiester bonds at start site.'},
+      {id:4,title:'Early elongation',desc:'Polymerase clears promoter and synthesizes RNA.'},
+      {id:5,title:'Processive elongation',desc:'RNA is synthesized 5\'→3\' while polymerase moves along template.'},
+      {id:6,title:'Termination signal recognised',desc:'Polymerase reaches terminator sequences.'},
+      {id:7,title:'Release and processing',desc:'mRNA is released; in eukaryotes processing occurs.'},
+      {id:8,title:'DNA rewinds',desc:'DNA re-anneals and returns to original state.'}
+    ];
+    this.index = 0; this.autoId = null;
+    this._buildCanvas(); this._wire(); this._renderQuiz(); this._goto(0);
+  }
+  _buildCanvas(){
+    const NS='http://www.w3.org/2000/svg'; const svg=document.createElementNS(NS,'svg'); svg.setAttribute('viewBox','0 0 900 260');
+    // simple two-strand representation
+    const top = document.createElementNS(NS,'path'); const bot = document.createElementNS(NS,'path');
+    const topPts=[]; const botPts=[]; for(let x=0;x<=900;x+=20){ const t=(x/900)*Math.PI*2; topPts.push(`${x},${70+Math.sin(t)*18}`); botPts.push(`${x},${170+Math.sin(t+Math.PI)*18}`); }
+    top.setAttribute('d','M'+topPts.join(' L ')); top.setAttribute('stroke','#A8F0FF'); top.setAttribute('fill','none'); top.setAttribute('stroke-width','3');
+    bot.setAttribute('d','M'+botPts.join(' L ')); bot.setAttribute('stroke','#9AF1D3'); bot.setAttribute('fill','none'); bot.setAttribute('stroke-width','3');
+    svg.appendChild(top); svg.appendChild(bot);
+    // transcription bubble overlay
+    const bubble = document.createElementNS(NS,'rect'); bubble.setAttribute('id','tx-bubble'); bubble.setAttribute('x',0); bubble.setAttribute('y',40); bubble.setAttribute('width',0); bubble.setAttribute('height',140); bubble.setAttribute('fill','rgba(255,255,255,0.02)'); svg.appendChild(bubble);
+    // polymerase marker
+    const pol = document.createElementNS(NS,'g'); pol.setAttribute('id','tx-pol'); const c=document.createElementNS(NS,'circle'); c.setAttribute('cx',60); c.setAttribute('cy',130); c.setAttribute('r',18); c.setAttribute('fill','rgba(255,200,120,0.12)'); c.setAttribute('stroke','rgba(255,200,120,0.18)'); pol.appendChild(c); const lab=document.createElementNS(NS,'text'); lab.setAttribute('x',60); lab.setAttribute('y',134); lab.setAttribute('text-anchor','middle'); lab.setAttribute('fill','#fff'); lab.setAttribute('font-size','10'); lab.textContent='RNAP'; pol.appendChild(lab); svg.appendChild(pol);
+    // mRNA group
+    const rna = document.createElementNS(NS,'g'); rna.setAttribute('id','tx-rna'); svg.appendChild(rna);
+    this.wrap.innerHTML=''; this.wrap.appendChild(svg); this.svg=svg; this.bubble=bubble; this.pol=pol; this.rnaGroup=rna;
+  }
+  _wire(){ this.prevBtn.addEventListener('click',()=>this.prev()); this.nextBtn.addEventListener('click',()=>this.next()); this.playBtn.addEventListener('click',()=>this.play()); this.pauseBtn.addEventListener('click',()=>this.pause()); this.resetBtn.addEventListener('click',()=>this.reset());
+    if(this.infoBtn) this.infoBtn.addEventListener('click', ()=> this._showInfo('Transcription','Transcription converts DNA to RNA. Click features for details.'));
+    if(this.howtoToggle) this.howtoToggle.addEventListener('click', ()=>{ const open=this.howto.classList.toggle('open'); this.howtoToggle.setAttribute('aria-expanded',String(open)); });
+  }
+  _showInfo(title,text){ const card=document.getElementById('rep-info-card'); const content=document.getElementById('rep-info-content'); if(!card||!content) return; content.innerHTML=`<strong>${title}</strong><p style="white-space:pre-wrap;margin-top:8px">${text}</p>`; card.classList.add('open'); card.setAttribute('aria-hidden','false'); }
+  _goto(i){ this.index = Math.max(0, Math.min(this.steps.length-1, i)); const s=this.steps[this.index]; this.stepCur.textContent=this.index; this.stepTot.textContent=this.steps.length-1; this.progress.max = this.steps.length-1; this.progress.value=this.index; this.stageTitle.textContent=s.title; this.explain.textContent=s.desc; // update visuals
+    const pct = this.index/(this.steps.length-1); const svgW=900; const w=Math.round(pct*svgW); this.bubble.setAttribute('width', String(w)); // move polymerase
+    const polX = 40 + Math.round(pct*(svgW-80)); this.pol.querySelector('circle').setAttribute('cx', polX); this.pol.querySelector('text').setAttribute('x', polX);
+    // render incremental mRNA based on step
+    this._renderRNA(this.index);
+  }
+  _renderRNA(step){ const NS='http://www.w3.org/2000/svg'; this.rnaGroup.innerHTML=''; const len = Math.min(this.mRNA.length, Math.max(0, Math.floor((step/ (this.steps.length-1)) * this.mRNA.length))); for(let i=0;i<len;i++){ const x=80 + i*14; const rect=document.createElementNS(NS,'rect'); rect.setAttribute('x',x); rect.setAttribute('y',40); rect.setAttribute('width',12); rect.setAttribute('height',18); rect.setAttribute('rx',3); rect.setAttribute('fill','#FFD6A6'); const t=document.createElementNS(NS,'text'); t.setAttribute('x', x+6); t.setAttribute('y', 54); t.setAttribute('text-anchor','middle'); t.setAttribute('class','rna-letter'); t.textContent = this.mRNA[i]; this.rnaGroup.appendChild(rect); this.rnaGroup.appendChild(t); }
+  }
+  next(){ this._goto(this.index+1); }
+  prev(){ this._goto(this.index-1); }
+  play(){ if(this.autoId) return; this.autoId=setInterval(()=>{ if(this.index>=this.steps.length-1) this.pause(); else this.next(); },800); }
+  pause(){ if(this.autoId){ clearInterval(this.autoId); this.autoId=null; } }
+  reset(){ this.pause(); this._goto(0); }
+  _renderQuiz(){ const area=document.getElementById('tx-quiz-area'); if(!area) return; area.innerHTML=''; const q=[{q:'Which base replaces Thymine in RNA?',opts:['Adenine','Uracil','Cytosine','Guanine'],a:'Uracil'},{q:'Direction of RNA synthesis?',opts:["3'→5'","5'→3'","Both","None"],a:"5'→3'"}]; q.forEach((item,idx)=>{ const d=document.createElement('div'); d.className='rep-quiz'; d.innerHTML=`<div class="quiz-q"><strong>Q${idx+1}.</strong> ${item.q}</div>`; item.opts.forEach(o=>{ const b=document.createElement('button'); b.className='btn'; b.textContent=o; b.addEventListener('click', ()=>{ d.querySelectorAll('button').forEach(x=>x.disabled=true); const ok = o===item.a; const feed=document.createElement('div'); feed.className='mut-summary muted'; feed.textContent = ok? 'Correct — '+item.a : 'Incorrect — answer: '+item.a; d.appendChild(feed); }); d.appendChild(b); }); area.appendChild(d); }); }
+}
+
+// --- Translation Simulator ---
+class TranslationSimulator{
+  constructor(){
+    this.wrap = document.getElementById('tl-svg-wrap'); this.progress = document.getElementById('tl-progress'); this.stepCur = document.getElementById('tl-step-current'); this.stepTot = document.getElementById('tl-step-total'); this.stageTitle = document.getElementById('tl-stage-title'); this.explain = document.getElementById('tl-explain');
+    this.prevBtn = document.getElementById('tl-prev'); this.nextBtn = document.getElementById('tl-next'); this.playBtn = document.getElementById('tl-play'); this.pauseBtn = document.getElementById('tl-pause'); this.resetBtn = document.getElementById('tl-reset'); this.infoBtn = document.getElementById('tl-info'); this.howtoToggle = document.getElementById('tl-howto-toggle'); this.howto = document.getElementById('tl-howto');
+    this.mRNA = 'AUGGCCAUUGUAA'; // example
+    this.codons = this.mRNA.match(/.{1,3}/g) || [];
+    this.steps = [
+      {id:0,title:'Idle',desc:'Ready'},
+      {id:1,title:'Initiation',desc:'Small and large ribosomal subunits assemble at start codon.'},
+      {id:2,title:'Start codon recognition',desc:'AUG is recognized; initiator tRNA binds.'},
+      {id:3,title:'Elongation - decoding',desc:'tRNAs enter A site matching codons; peptide bond forms.'},
+      {id:4,title:'Translocation',desc:'Ribosome moves 3 nucleotides to next codon.'},
+      {id:5,title:'Processive elongation',desc:'Chain grows as amino acids are added.'},
+      {id:6,title:'Termination',desc:'Stop codon recognized; release factors act.'},
+      {id:7,title:'Release and folding',desc:'Polypeptide released and begins folding.'}
+    ];
+    this.index=0; this.autoId=null; this._buildCanvas(); this._wire(); this._renderQuiz(); this._goto(0);
+  }
+  _buildCanvas(){ const NS='http://www.w3.org/2000/svg'; const svg=document.createElementNS(NS,'svg'); svg.setAttribute('viewBox','0 0 900 260');
+    // mRNA track
+    const track = document.createElementNS(NS,'line'); track.setAttribute('x1',40); track.setAttribute('x2',860); track.setAttribute('y1',120); track.setAttribute('y2',120); track.setAttribute('stroke','rgba(255,255,255,0.04)'); track.setAttribute('stroke-width','6'); svg.appendChild(track);
+    // codon boxes
+    const codonGroup = document.createElementNS(NS,'g'); codonGroup.setAttribute('id','tl-codons'); for(let i=0;i<this.codons.length;i++){ const x=60+i*36; const r=document.createElementNS(NS,'rect'); r.setAttribute('x',x); r.setAttribute('y',100); r.setAttribute('width',30); r.setAttribute('height',28); r.setAttribute('rx',4); r.setAttribute('fill','rgba(255,255,255,0.02)'); r.setAttribute('stroke','rgba(255,255,255,0.02)'); r.setAttribute('data-codon',this.codons[i]); const t=document.createElementNS(NS,'text'); t.setAttribute('x',x+15); t.setAttribute('y',120); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#fff'); t.setAttribute('font-size','11'); t.textContent = this.codons[i]; codonGroup.appendChild(r); codonGroup.appendChild(t); }
+    svg.appendChild(codonGroup);
+    // ribosome: two circles
+    const small = document.createElementNS(NS,'circle'); small.setAttribute('cx',180); small.setAttribute('cy',120); small.setAttribute('r',34); small.setAttribute('class','ribosome-small'); small.setAttribute('fill','rgba(255,255,255,0.03)'); small.setAttribute('stroke','rgba(255,255,255,0.04)');
+    const large = document.createElementNS(NS,'circle'); large.setAttribute('cx',220); large.setAttribute('cy',120); large.setAttribute('r',54); large.setAttribute('class','ribosome-large'); large.setAttribute('fill','rgba(34,211,238,0.03)'); large.setAttribute('stroke','rgba(34,211,238,0.06)');
+    svg.appendChild(large); svg.appendChild(small);
+    // peptide chain group
+    const pep = document.createElementNS(NS,'g'); pep.setAttribute('id','tl-peptide'); pep.setAttribute('transform','translate(320,100)'); svg.appendChild(pep);
+    this.wrap.innerHTML=''; this.wrap.appendChild(svg); this.svg=svg; this.codonGroup=codonGroup; this.pep=pep; this.small=small; this.large=large;
+  }
+  _wire(){ this.prevBtn.addEventListener('click',()=>this.prev()); this.nextBtn.addEventListener('click',()=>this.next()); this.playBtn.addEventListener('click',()=>this.play()); this.pauseBtn.addEventListener('click',()=>this.pause()); this.resetBtn.addEventListener('click',()=>this.reset()); if(this.infoBtn) this.infoBtn.addEventListener('click', ()=> this._showInfo('Translation','Translation decodes mRNA into protein. Click codons to inspect.')); if(this.howtoToggle) this.howtoToggle.addEventListener('click', ()=>{ const open=this.howto.classList.toggle('open'); this.howtoToggle.setAttribute('aria-expanded',String(open)); }); }
+  _showInfo(title,text){ const card=document.getElementById('rep-info-card'); const content=document.getElementById('rep-info-content'); if(!card||!content) return; content.innerHTML=`<strong>${title}</strong><p style="white-space:pre-wrap;margin-top:8px">${text}</p>`; card.classList.add('open'); card.setAttribute('aria-hidden','false'); }
+  _goto(i){ this.index = Math.max(0, Math.min(this.steps.length-1, i)); const s=this.steps[this.index]; this.stepCur.textContent=this.index; this.stepTot.textContent=this.steps.length-1; this.progress.max = this.steps.length-1; this.progress.value=this.index; this.stageTitle.textContent=s.title; this.explain.textContent=s.desc; // highlight codon
+    const active = this.index-1; // map steps to codon index roughly
+    Array.from(this.codonGroup.querySelectorAll('rect')).forEach((r,idx)=> r.classList.toggle('codon-active', idx===active));
+    // add peptide residue when elongation steps
+    if(this.index>=3 && active>=0 && active<this.codons.length){ this._addAmino(active); }
+  }
+  _addAmino(i){ const NS='http://www.w3.org/2000/svg'; const x = i*18; const c = document.createElementNS(NS,'circle'); c.setAttribute('cx', x); c.setAttribute('cy', 0); c.setAttribute('r',8); c.setAttribute('fill','#A8FFD8'); this.pep.appendChild(c); }
+  next(){ this._goto(this.index+1); }
+  prev(){ this._goto(this.index-1); }
+  play(){ if(this.autoId) return; this.autoId=setInterval(()=>{ if(this.index>=this.steps.length-1) this.pause(); else this.next(); },900); }
+  pause(){ if(this.autoId){ clearInterval(this.autoId); this.autoId=null; } }
+  reset(){ this.pause(); this._goto(0); this.pep.innerHTML=''; Array.from(this.codonGroup.querySelectorAll('rect')).forEach(r=>r.classList.remove('codon-active')) }
+  _renderQuiz(){ const area=document.getElementById('tl-quiz-area'); if(!area) return; area.innerHTML=''; const q=[{q:'Which molecule carries amino acids to the ribosome?',opts:['mRNA','tRNA','rRNA','DNA'],a:'tRNA'},{q:'What is the start codon?',opts:['UAG','UGA','AUG','UAA'],a:'AUG'}]; q.forEach((item,idx)=>{ const d=document.createElement('div'); d.className='rep-quiz'; d.innerHTML=`<div class="quiz-q"><strong>Q${idx+1}.</strong> ${item.q}</div>`; item.opts.forEach(o=>{ const b=document.createElement('button'); b.className='btn'; b.textContent=o; b.addEventListener('click', ()=>{ d.querySelectorAll('button').forEach(x=>x.disabled=true); const ok = o===item.a; const feed=document.createElement('div'); feed.className='mut-summary muted'; feed.textContent = ok? 'Correct — '+item.a : 'Incorrect — answer: '+item.a; d.appendChild(feed); }); d.appendChild(b); }); area.appendChild(d); }); }
+}
+
+const replication = new ReplicationSimulator();
+const mutation = new MutationSimulator();
+const challenge = new SequenceChallenge();
+const transcription = new TranscriptionSimulator();
+const translation = new TranslationSimulator();
+
+// keyboard accessibility small improvements
+document.addEventListener('keydown',(e)=>{ if(e.key==='Escape'){ /* reserved for modals */ } });
+
+// --- Repair Mechanisms Simulator ---
+class RepairSimulator{
+  constructor(){
+    this.wrap = document.getElementById('repair-svg-wrap'); this.select = document.getElementById('repair-select'); this.progress = document.getElementById('repair-progress'); this.stepCur = document.getElementById('repair-step-current'); this.stepTot = document.getElementById('repair-step-total'); this.stageTitle = document.getElementById('repair-stage-title'); this.explain = document.getElementById('repair-explain');
+    this.prevBtn = document.getElementById('repair-prev'); this.nextBtn = document.getElementById('repair-next'); this.playBtn = document.getElementById('repair-play'); this.pauseBtn = document.getElementById('repair-pause'); this.resetBtn = document.getElementById('repair-reset'); this.enzymeList = document.getElementById('repair-enzyme-list');
+    this.pathways = ['mmr','ber','ner','dsb-hr','dsb-nhej']; this.currentPathway = 'mmr';
+    this.steps = [];
+    this.index = 0; this.autoId = null;
+    this._wire(); this._renderPathway(this.currentPathway);
+  }
+  _wire(){ if(this.select) this.select.addEventListener('change', (e)=>{ this.currentPathway = e.target.value; this._renderPathway(this.currentPathway); }); if(this.prevBtn) this.prevBtn.addEventListener('click', ()=>this.prev()); if(this.nextBtn) this.nextBtn.addEventListener('click', ()=>this.next()); if(this.playBtn) this.playBtn.addEventListener('click', ()=>this.play()); if(this.pauseBtn) this.pauseBtn.addEventListener('click', ()=>this.pause()); if(this.resetBtn) this.resetBtn.addEventListener('click', ()=>this.reset()); }
+  _renderPathway(path){ // scaffold steps and enzymes for each pathway
+    const map = {
+      'mmr':{steps:['Mismatch detection','Excision','Resynthesis','Ligation'], enzymes:['MutS','MutL','Exonuclease','DNA Pol','Ligase'], explain:'Mismatch Repair corrects replication errors.'},
+      'ber':{steps:['Damage recognition','Base excision','End processing','Gap filling','Ligation'], enzymes:['DNA Glycosylase','AP Endonuclease','DNA Pol','Ligase'], explain:'Base Excision Repair removes single-base lesions.'},
+      'ner':{steps:['Damage recognition','Dual incision','Excision','Resynthesis','Ligation'], enzymes:['UV-DDB','TFIIH','Endonucleases','DNA Pol','Ligase'], explain:'Nucleotide Excision Repair removes bulky helix-distorting lesions.'},
+      'dsb-hr':{steps:['End resection','Strand invasion','DNA synthesis','Resolution'], enzymes:['MRN/CtIP','Rad51','BRCA1/2','DNA Pol','Ligase'], explain:'Homologous Recombination repairs DSB using a sister chromatid.'},
+      'dsb-nhej':{steps:['End recognition','End processing','Ligation'], enzymes:['Ku70/80','DNA-PKcs','Artemis','Ligase IV'], explain:'NHEJ quickly joins DSB ends, can be error-prone.'}
+    };
+    const p = map[path]||map['mmr']; this.steps = p.steps; this.stepCur.textContent = 0; this.stepTot.textContent = this.steps.length; this.progress.max = this.steps.length; this.progress.value=0; this.stageTitle.textContent='Idle'; this.explain.textContent=p.explain; // enzyme list
+    this.enzymeList.innerHTML=''; (p.enzymes||[]).forEach(en=>{ const d=document.createElement('div'); d.className='enzyme-card'; d.textContent = en; d.tabIndex=0; d.addEventListener('click', ()=> this._showInfo(en, 'Function of '+en)); this.enzymeList.appendChild(d); }); this._buildCanvasFor(path);
+  }
+  _buildCanvasFor(path){ const NS='http://www.w3.org/2000/svg'; const svg=document.createElementNS(NS,'svg'); svg.setAttribute('viewBox','0 0 900 300'); svg.innerHTML = '<rect x="0" y="0" width="900" height="300" fill="none" />'; this.wrap.innerHTML=''; this.wrap.appendChild(svg); this.svg=svg; }
+  _showInfo(title,text){ const card=document.getElementById('rep-info-card'); const content=document.getElementById('rep-info-content'); if(!card||!content) return; content.innerHTML=`<strong>${title}</strong><p style="white-space:pre-wrap;margin-top:8px">${text}</p>`; card.classList.add('open'); card.setAttribute('aria-hidden','false'); }
+  _goto(i){ this.index = Math.max(0, Math.min(this.steps.length-1, i)); this.stepCur.textContent = this.index; this.progress.value = this.index; this.stageTitle.textContent = this.steps[this.index]||'Idle'; this.explain.textContent = this.steps[this.index] ? this.steps[this.index] + ' — detailed explanation available.' : this.explain.textContent; }
+  next(){ this._goto(this.index+1); }
+  prev(){ this._goto(this.index-1); }
+  play(){ if(this.autoId) return; this.autoId=setInterval(()=>{ if(this.index>=this.steps.length-1) this.pause(); else this.next(); },900); }
+  pause(){ if(this.autoId){ clearInterval(this.autoId); this.autoId=null; } }
+  reset(){ this.pause(); this._goto(0); }
+  _renderQuiz(){ const area=document.getElementById('repair-quiz-area'); if(!area) return; area.innerHTML=''; const q={q:'Which pathway fixes bulky UV-induced pyrimidine dimers?',opts:['MMR','BER','NER','NHEJ'],a:'NER'}; const d=document.createElement('div'); d.className='rep-quiz'; d.innerHTML=`<div class="quiz-q"><strong>Q1.</strong> ${q.q}</div>`; q.opts.forEach(o=>{ const b=document.createElement('button'); b.className='btn'; b.textContent=o; b.addEventListener('click', ()=>{ d.querySelectorAll('button').forEach(x=>x.disabled=true); const feed=document.createElement('div'); feed.className='mut-summary muted'; feed.textContent = o===q.a ? 'Correct — '+q.a : 'Incorrect — answer: '+q.a; d.appendChild(feed); }); d.appendChild(b); }); area.appendChild(d); }
+}
+
+// --- Sequencing Technologies Simulator ---
+class SequencingSimulator{
+  constructor(){ this.wrap = document.getElementById('seq-svg-wrap'); this.select = document.getElementById('seq-select'); this.stageTitle = document.getElementById('seq-stage-title'); this.explain = document.getElementById('seq-explain'); this.prevBtn = document.getElementById('seq-reset'); this._wire(); this._renderTopic(this.select?this.select.value:'sanger'); }
+  _wire(){ if(this.select) this.select.addEventListener('change',(e)=> this._renderTopic(e.target.value)); if(this.prevBtn) this.prevBtn.addEventListener('click', ()=> this._renderTopic(this.select.value)); }
+  _renderTopic(t){ const NS='http://www.w3.org/2000/svg'; const svg=document.createElementNS(NS,'svg'); svg.setAttribute('viewBox','0 0 900 300'); svg.innerHTML=''; if(t==='sanger'){ svg.innerHTML = '<text x="20" y="40" fill="#fff">Sanger sequencing: chain-termination method — template, primer, dNTPs, ddNTPs, polymerase, capillary separation.</text>'; this.stageTitle.textContent='Sanger Sequencing'; this.explain.textContent='Principle: chain termination with labeled ddNTPs followed by electrophoretic separation.'; }
+    else if(t==='ngs'){ svg.innerHTML = '<text x="20" y="40" fill="#fff">NGS: massively parallel sequencing — library prep, clonal amplification, sequencing by synthesis.</text>'; this.stageTitle.textContent='Next-Generation Sequencing (NGS)'; this.explain.textContent='Principle: parallel sequencing of millions of fragments; requires library prep and sequencing chemistry.'; }
+    else if(t==='wgs'){ svg.innerHTML = '<text x="20" y="40" fill="#fff">WGS: unbiased whole-genome sequencing using NGS platforms.</text>'; this.stageTitle.textContent='Whole Genome Sequencing (WGS)'; this.explain.textContent='Workflow: DNA extraction, library prep, NGS run, data analysis.'; }
+    else if(t==='wes'){ svg.innerHTML = '<text x="20" y="40" fill="#fff">WES: captures and sequences exonic regions (the exome).</text>'; this.stageTitle.textContent='Whole Exome Sequencing (WES)'; this.explain.textContent='Focuses on coding regions; useful for Mendelian disease discovery.'; }
+    this.wrap.innerHTML=''; this.wrap.appendChild(svg);
+    this._renderQuiz();
+  }
+  _renderQuiz(){ const area=document.getElementById('seq-quiz-area'); if(!area) return; area.innerHTML=''; const q=[{q:'Which sequencing method uses ddNTPs?',opts:['Sanger','NGS','WGS','WES'],a:'Sanger'},{q:'WES targets which part of the genome?',opts:['Introns','Exons','Promoters','Intergenic'],a:'Exons'}]; q.forEach((item,idx)=>{ const d=document.createElement('div'); d.className='rep-quiz'; d.innerHTML=`<div class="quiz-q"><strong>Q${idx+1}.</strong> ${item.q}</div>`; item.opts.forEach(o=>{ const b=document.createElement('button'); b.className='btn'; b.textContent=o; b.addEventListener('click', ()=>{ d.querySelectorAll('button').forEach(x=>x.disabled=true); const feed=document.createElement('div'); feed.className='mut-summary muted'; feed.textContent = o===item.a ? 'Correct — '+item.a : 'Incorrect — answer: '+item.a; d.appendChild(feed); }); d.appendChild(b); }); area.appendChild(d); }); }
+}
+
+class RepairSimulatorPro extends RepairSimulator{
+  constructor(){ super(); this.infoBtn=document.getElementById('repair-info'); this.howtoToggle=document.getElementById('repair-howto-toggle'); this.howto=document.getElementById('repair-howto'); this.activeEnzyme=null; if(this.infoBtn) this.infoBtn.addEventListener('click',()=>{ const p=this.data[this.currentPathway]; this._showInfo(p.label,p.summary); }); if(this.howtoToggle&&this.howto) this.howtoToggle.addEventListener('click',()=>{ const open=this.howto.classList.toggle('open'); this.howtoToggle.setAttribute('aria-expanded',String(open)); }); this._renderPathway(this.currentPathway); this._renderQuiz(); }
+  _data(){ return {
+    mmr:{label:'Mismatch Repair (MMR)',lesion:'mismatch',summary:'Corrects replication mispairs before they become permanent mutations.',enzymes:[['MutS','Recognizes distorted base pairing.'],['MutL','Coordinates excision on the new strand.'],['Exonuclease','Removes the mismatch-containing patch.'],['DNA Pol','Refills the repair gap.'],['Ligase','Seals the repaired backbone.']],steps:[['Mismatch detection','MutS scans newly replicated DNA and locks onto the mispaired base.','Protects microsatellites and genome stability.'],['Repair complex assembly','MutL recruits excision machinery to the newly synthesized strand.','The original strand preserves the correct information.'],['Excision','A short segment containing the mismatch is removed.','This is patch repair, not a one-base swap.'],['Resynthesis','DNA polymerase copies the correct strand across the gap.','Polymerase converts recognition into restored sequence.'],['Ligation','Ligase closes the nick in the sugar-phosphate backbone.','The repair is now chemically complete.']]},
+    ber:{label:'Base Excision Repair (BER)',lesion:'base',summary:'Repairs small base lesions such as deamination, oxidation, and alkylation.',enzymes:[['DNA glycosylase','Flips out and removes the damaged base.'],['AP endonuclease','Cuts beside the abasic site.'],['DNA Pol beta','Fills the single-nucleotide gap.'],['Ligase III/XRCC1','Seals the nick.']],steps:[['Damage recognition','DNA glycosylase detects a chemically altered base.','Common for oxidative damage and deamination.'],['Base excision','The damaged base is removed, leaving an AP site.','AP means abasic; the backbone remains.'],['Backbone incision','AP endonuclease opens the backbone next to the AP site.','The lesion becomes a clean repair gap.'],['Gap filling','DNA polymerase inserts the correct nucleotide.','The intact strand acts as template.'],['Ligation','Ligase seals the final nick.','BER is usually short-patch and precise.']]},
+    ner:{label:'Nucleotide Excision Repair (NER)',lesion:'bulky',summary:'Removes bulky helix-distorting lesions such as UV-induced thymine dimers.',enzymes:[['UV-DDB/XPC','Detects helix distortion.'],['TFIIH','Unwinds DNA around the lesion.'],['XPF/XPG','Cuts on both sides of the lesion.'],['DNA Pol','Replaces the missing patch.'],['Ligase','Closes the final nick.']],steps:[['Damage recognition','Sensor proteins detect a bulky distortion in the helix.','Classic example: UV pyrimidine dimers.'],['Local unwinding','TFIIH opens a repair bubble around the lesion.','NER needs room for dual incision.'],['Dual incision','Endonucleases cut upstream and downstream of the lesion.','A short oligonucleotide patch is removed.'],['Patch synthesis','DNA polymerase replaces the excised nucleotides.','The opposite strand preserves sequence.'],['Ligation','Ligase seals the repaired strand.','NER restores both sequence and helix shape.']]},
+    'dsb-hr':{label:'Double-Strand Break: HR',lesion:'dsb',summary:'Accurate double-strand break repair using a sister chromatid as template.',enzymes:[['MRN/CtIP','Recognizes the break and resects ends.'],['BRCA1/2','Supports Rad51 loading.'],['Rad51','Builds the strand invasion filament.'],['DNA Pol','Extends the invading strand.'],['Resolvasome/Ligase','Resolves and seals products.']],steps:[['End resection','Broken ends are trimmed to produce 3-prime overhangs.','HR is favored in S/G2.'],['Strand invasion','Rad51-coated DNA invades a homologous template.','This is the defining HR move.'],['DNA synthesis','Polymerase copies missing information from the sister chromatid.','Accuracy comes from templated repair.'],['Resolution','Joint molecules are resolved and ligated.','The chromosome is restored with minimal loss.']]},
+    'dsb-nhej':{label:'Double-Strand Break: NHEJ',lesion:'dsb',summary:'Fast double-strand break repair by direct end joining, sometimes with indels.',enzymes:[['Ku70/80','Caps and aligns DNA ends.'],['DNA-PKcs','Forms the repair synapse.'],['Artemis','Processes incompatible ends.'],['Ligase IV/XRCC4','Joins the DNA ends.']],steps:[['End recognition','Ku70/80 rapidly binds both broken DNA ends.','NHEJ works throughout the cell cycle.'],['Synapsis','DNA-PKcs holds the ends in a repair complex.','The priority is chromosome stabilization.'],['End processing','Damaged termini are trimmed or filled.','This can introduce small indels.'],['Ligation','Ligase IV joins the ends.','NHEJ is fast but can be mutagenic.']]}
+  }; }
+  _wire(){ super._wire(); this.data=this._data(); }
+  _renderPathway(path){ this.data=this.data||this._data(); const p=this.data[path]||this.data.mmr; this.currentPathway=path; this.steps=p.steps.map((s,i)=>({id:i,title:s[0],desc:s[1],note:s[2]})); this.index=0; this.activeEnzyme=null; this.stepCur.textContent='0'; this.stepTot.textContent=String(this.steps.length-1); this.progress.max=this.steps.length-1; this.progress.value=0; this.enzymeList.innerHTML=''; p.enzymes.forEach((en,idx)=>{ const b=document.createElement('button'); b.type='button'; b.className='enzyme-card'; b.textContent=en[0]; b.setAttribute('aria-label',en[0]+': '+en[1]); b.addEventListener('click',()=>this._selectEnzyme(idx)); this.enzymeList.appendChild(b); }); this._goto(0); }
+  _selectEnzyme(idx){ const p=this.data[this.currentPathway]; this.activeEnzyme=idx; Array.from(this.enzymeList.children).forEach((el,i)=>el.classList.toggle('active',i===idx)); this._showInfo(p.enzymes[idx][0],p.enzymes[idx][1]); this._drawRepair(); }
+  _goto(i){ this.index=Math.max(0,Math.min(this.steps.length-1,i)); const s=this.steps[this.index]; this.stepCur.textContent=String(this.index); this.progress.value=this.index; this.stageTitle.textContent=s.title; this.explain.textContent=s.desc+' '+s.note; this._drawRepair(); }
+  _drawRepair(){ const p=this.data[this.currentPathway]; const s=this.steps[this.index]; const activeX=[210,330,470,610,730][Math.min(this.index,4)]||210; const isDsb=p.lesion==='dsb'; const bases=['A','T','G','C','C','A','T','G','A','C']; const comp=['T','A','C','G','G','T','A','C','T','G']; const cells=bases.map((b,i)=>{ const hit=!isDsb&&((p.lesion==='mismatch'&&i===4)||(p.lesion==='base'&&i===3)||(p.lesion==='bulky'&&(i===4||i===5))); const gap=this.index>=2&&hit; const x=95+i*65; return `<g class="${hit?'bio-active':''}"><rect x="${x}" y="93" width="34" height="26" rx="7" fill="${gap?'rgba(255,255,255,.08)':'#67e8f9'}" stroke="${hit?'#fbbf24':'rgba(255,255,255,.18)'}"/><text class="dna-base" x="${x+17}" y="111" text-anchor="middle">${gap?'':b}</text><line x1="${x+17}" y1="119" x2="${x+17}" y2="178" stroke="rgba(230,237,245,.18)" stroke-width="2"/><rect x="${x}" y="184" width="34" height="26" rx="7" fill="${gap&&this.index<3?'rgba(255,255,255,.08)':'#5eead4'}"/><text class="dna-base" x="${x+17}" y="202" text-anchor="middle">${gap&&this.index<3?'':comp[i]}</text></g>`; }).join(''); const breakVisual=isDsb?`<path d="M95 112 H410 L438 95 L466 112 H805" stroke="#67e8f9" stroke-width="10" stroke-linecap="round" fill="none"/><path d="M95 196 H410 L438 213 L466 196 H805" stroke="#5eead4" stroke-width="10" stroke-linecap="round" fill="none"/><circle class="pulse-node" cx="438" cy="104" r="20" fill="rgba(251,191,36,.18)" stroke="#fbbf24"/><circle class="pulse-node" cx="438" cy="204" r="20" fill="rgba(251,191,36,.18)" stroke="#fbbf24"/>`:`<path d="M80 106 C230 70,330 142,480 106 S730 72,830 106" stroke="rgba(103,232,249,.42)" stroke-width="8" fill="none" stroke-linecap="round"/><path d="M80 198 C230 234,330 162,480 198 S730 232,830 198" stroke="rgba(94,234,212,.42)" stroke-width="8" fill="none" stroke-linecap="round"/>${cells}`; const enzyme=this.activeEnzyme!==null?p.enzymes[this.activeEnzyme][0]:(p.enzymes[Math.min(this.index,p.enzymes.length-1)]||['Repair enzyme'])[0]; this.wrap.innerHTML=`<svg viewBox="0 0 900 300" role="img" aria-label="${this._esc(p.label)} visualization"><defs><linearGradient id="repairGlow" x1="0" x2="1"><stop offset="0%" stop-color="#14B8A6"/><stop offset="100%" stop-color="#22D3EE"/></linearGradient></defs><rect width="900" height="300" rx="24" fill="rgba(2,6,15,.28)"/><text class="bio-label" x="38" y="38">${this._esc(p.label)}</text><text class="bio-small" x="38" y="58">${this._esc(p.summary)}</text>${breakVisual}<g class="bio-active"><rect class="bio-chip" x="${activeX-62}" y="34" width="124" height="42" rx="16"/><text class="bio-label" x="${activeX}" y="59" text-anchor="middle">${this._esc(enzyme)}</text></g><line class="scan-line" x1="${activeX}" y1="78" x2="${activeX}" y2="225" stroke="url(#repairGlow)" stroke-width="3" stroke-dasharray="6 7"/><g transform="translate(52 248)"><rect x="0" y="0" width="796" height="28" rx="14" fill="rgba(255,255,255,.035)"/><rect x="0" y="0" width="${(this.index/(this.steps.length-1))*796}" height="28" rx="14" fill="rgba(34,211,238,.16)"/><text class="bio-small" x="18" y="19">${this._esc(s.title)}: ${this._esc(s.note)}</text></g></svg>`; }
+  reset(){ this.pause(); this.activeEnzyme=null; Array.from(this.enzymeList.children).forEach(el=>el.classList.remove('active')); this._goto(0); }
+  _renderQuiz(){ const area=document.getElementById('repair-quiz-area'); if(!area) return; area.innerHTML=''; const q=[{q:'Which pathway fixes bulky UV-induced pyrimidine dimers?',opts:['MMR','BER','NER','NHEJ'],a:'NER',why:'NER removes bulky helix-distorting lesions.'},{q:'Which DSB pathway usually needs a sister chromatid?',opts:['BER','HR','NHEJ','MMR'],a:'HR',why:'Homologous recombination copies from a homologous template.'}]; q.forEach((item,idx)=>{ const d=document.createElement('div'); d.className='rep-quiz'; d.innerHTML=`<div class="quiz-q"><strong>Q${idx+1}.</strong> ${item.q}</div>`; item.opts.forEach(o=>{ const b=document.createElement('button'); b.className='btn'; b.textContent=o; b.addEventListener('click',()=>{ d.querySelectorAll('button').forEach(x=>x.disabled=true); const feed=document.createElement('div'); feed.className='mut-summary muted'; feed.textContent=o===item.a?'Correct - '+item.why:'Not quite - '+item.why; d.appendChild(feed); }); d.appendChild(b); }); area.appendChild(d); }); }
+  _esc(value){ return String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+}
+
+class SequencingSimulatorPro extends SequencingSimulator{
+  constructor(){ super(); this.resetBtn=document.getElementById('seq-reset'); this.zoomBtn=document.getElementById('seq-zoom'); this.infoBtn=document.getElementById('seq-info'); this.howtoToggle=document.getElementById('seq-howto-toggle'); this.howto=document.getElementById('seq-howto'); this.topics=this._topicData(); this.topic=this.select?this.select.value:'sanger'; this.activeStep=0; this.zoomed=false; this._ensurePanel(); this._wirePro(); this._renderTopic(this.topic); this._renderQuiz(); }
+  _topicData(){ return {sanger:{label:'Sanger Sequencing',principle:'Chain termination with fluorescent ddNTPs creates fragments ending at each base.',steps:[['Template setup','Template DNA, primer, polymerase, dNTPs, and trace ddNTPs are combined.'],['Extension and termination','When a ddNTP is added, extension stops because it lacks a 3-prime OH.'],['Capillary separation','Fragments are separated by size through capillary electrophoresis.'],['Chromatogram readout','Fluorescent peaks are converted into a sequence.']]},ngs:{label:'Next-Generation Sequencing (NGS)',principle:'Millions of fragments are sequenced in parallel to produce high-throughput short reads.',steps:[['Library preparation','DNA is fragmented and adapters are ligated.'],['Clonal amplification','Fragments are amplified on a flow cell or beads.'],['Sequencing by synthesis','Bases are detected cycle by cycle as polymerase extends reads.'],['Alignment and variant calling','Reads are mapped to a reference and differences are interpreted.']]},wgs:{label:'Whole Genome Sequencing (WGS)',principle:'Sequences coding and noncoding DNA across the entire genome.',steps:[['Genome-wide DNA extraction','High-quality genomic DNA is isolated.'],['Whole-genome library','Fragments represent the full genome without target capture.'],['Deep sequencing','Reads cover exons, introns, promoters, and intergenic regions.'],['Genome analysis','SNVs, CNVs, structural variants, and noncoding variants can be assessed.']]},wes:{label:'Whole Exome Sequencing (WES)',principle:'Captures and sequences protein-coding exons, where many Mendelian disease variants occur.',steps:[['Library preparation','Genomic fragments receive adapters.'],['Exome capture','Probe baits enrich exon-containing fragments.'],['Sequencing','Captured exonic DNA is sequenced by NGS.'],['Variant prioritization','Coding variants are filtered by inheritance, rarity, and predicted effect.']]}}; }
+  _ensurePanel(){ const aside=this.explain.closest('aside'); let panel=document.getElementById('seq-workflow-panel'); if(!panel){ panel=document.createElement('div'); panel.id='seq-workflow-panel'; panel.className='seq-flow'; panel.setAttribute('aria-label','Sequencing workflow steps'); aside.appendChild(panel); } this.workflow=panel; }
+  _wirePro(){ if(this.select) this.select.addEventListener('change',(e)=>{ this.topic=e.target.value; this.activeStep=0; this._renderTopic(this.topic); }); if(this.resetBtn) this.resetBtn.addEventListener('click',()=>{ this.activeStep=0; this.zoomed=false; this._renderTopic(this.topic); }); if(this.zoomBtn) this.zoomBtn.addEventListener('click',()=>{ this.zoomed=!this.zoomed; this._drawTopic(); }); if(this.infoBtn) this.infoBtn.addEventListener('click',()=>{ const t=this.topics[this.topic]; this._showInfo(t.label,t.principle); }); if(this.howtoToggle&&this.howto) this.howtoToggle.addEventListener('click',()=>{ const open=this.howto.classList.toggle('open'); this.howtoToggle.setAttribute('aria-expanded',String(open)); }); }
+  _renderTopic(t){ if(!this.topics){ return super._renderTopic(t); } this.topic=t; this.stageTitle.textContent=this.topics[t].label; this._renderWorkflow(); this._selectStep(this.activeStep,false); this._drawTopic(); }
+  _renderWorkflow(){ const topic=this.topics[this.topic]; this.workflow.innerHTML=''; topic.steps.forEach((s,idx)=>{ const b=document.createElement('button'); b.type='button'; b.className='tech-box enzyme-card'; b.textContent=(idx+1)+'. '+s[0]; b.setAttribute('aria-pressed',String(idx===this.activeStep)); b.addEventListener('click',()=>this._selectStep(idx,true)); this.workflow.appendChild(b); }); }
+  _selectStep(idx,redraw=true){ const topic=this.topics[this.topic]; this.activeStep=Math.max(0,Math.min(topic.steps.length-1,idx)); const s=topic.steps[this.activeStep]; this.stageTitle.textContent=s[0]; this.explain.textContent=s[1]+' Principle: '+topic.principle; Array.from(this.workflow.children).forEach((el,i)=>{ el.classList.toggle('active',i===this.activeStep); el.setAttribute('aria-pressed',String(i===this.activeStep)); }); if(redraw) this._drawTopic(); }
+  _drawTopic(){ const topic=this.topics[this.topic]; const view=this.zoomed?'90 20 720 230':'0 0 900 300'; const nodes=topic.steps.map((s,i)=>{ const x=125+i*215; const active=i===this.activeStep; return `<g class="${active?'bio-active':''}" data-step="${i}" tabindex="0"><circle cx="${x}" cy="136" r="42" fill="${active?'rgba(34,211,238,.22)':'rgba(255,255,255,.045)'}" stroke="${active?'#22D3EE':'rgba(103,232,249,.18)'}" stroke-width="2"/><text class="bio-label" x="${x}" y="132" text-anchor="middle">${i+1}</text><text class="bio-small" x="${x}" y="155" text-anchor="middle">${this._esc(this._short(s[0]))}</text></g>`; }).join(''); this.wrap.innerHTML=`<svg viewBox="${view}" role="img" aria-label="${this._esc(topic.label)} workflow"><defs><linearGradient id="seqGrad" x1="0" x2="1"><stop offset="0%" stop-color="#14B8A6"/><stop offset="100%" stop-color="#22D3EE"/></linearGradient></defs><rect width="900" height="300" rx="24" fill="rgba(2,6,15,.28)"/><text class="bio-label" x="38" y="38">${this._esc(topic.label)}</text><text class="bio-small" x="38" y="58">${this._esc(topic.principle)}</text><path d="M165 136 H735" stroke="rgba(103,232,249,.22)" stroke-width="6" stroke-linecap="round"/><path d="M165 136 H${165+Math.max(0,this.activeStep)*215}" stroke="url(#seqGrad)" stroke-width="6" stroke-linecap="round"/>${nodes}<g transform="translate(96 214)">${this._reads()}</g></svg>`; this.wrap.querySelectorAll('[data-step]').forEach(el=>{ el.addEventListener('click',()=>this._selectStep(Number(el.getAttribute('data-step')),true)); el.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); this._selectStep(Number(el.getAttribute('data-step')),true); } }); }); }
+  _reads(){ const c=['#67e8f9','#5eead4','#c4b5fd','#fbbf24']; if(this.topic==='sanger') return c.map((color,i)=>`<rect class="seq-read" x="${i*164}" y="${i*8}" width="${118+i*18}" height="12" rx="6" fill="${color}" opacity="${this.activeStep >= 1 ? .9 : .35}"/><text class="bio-small" x="${i*164}" y="${44+i*8}">${['A','C','G','T'][i]} terminated fragments</text>`).join(''); if(this.topic==='ngs') return Array.from({length:18},(_,i)=>`<rect class="seq-read" x="${(i%9)*76}" y="${Math.floor(i/9)*34}" width="52" height="10" rx="5" fill="${c[i%4]}" opacity="${this.activeStep >= 2 ? .86 : .34}"/>`).join('')+'<text class="bio-small" x="0" y="88">Parallel reads build depth across the target.</text>'; if(this.topic==='wgs') return '<rect x="0" y="6" width="690" height="34" rx="17" fill="rgba(255,255,255,.04)" stroke="rgba(103,232,249,.18)"/><rect class="seq-read" x="8" y="12" width="674" height="22" rx="11" fill="rgba(34,211,238,.2)"/><text class="bio-small" x="0" y="68">Genome-wide reads include coding and noncoding regions.</text>'; return '<rect x="0" y="6" width="690" height="34" rx="17" fill="rgba(255,255,255,.04)" stroke="rgba(103,232,249,.18)"/><rect x="92" y="10" width="96" height="26" rx="10" fill="#5eead4"/><rect x="312" y="10" width="80" height="26" rx="10" fill="#5eead4"/><rect x="526" y="10" width="108" height="26" rx="10" fill="#5eead4"/><text class="bio-small" x="0" y="68">Capture probes enrich exon islands before sequencing.</text>'; }
+  _short(label){ return label.length>18?label.split(' ').slice(0,2).join(' '):label; }
+  _showInfo(title,text){ const card=document.getElementById('rep-info-card'); const content=document.getElementById('rep-info-content'); if(!card||!content) return; content.innerHTML=`<strong>${this._esc(title)}</strong><p style="white-space:pre-wrap;margin-top:8px">${this._esc(text)}</p>`; card.classList.add('open'); card.setAttribute('aria-hidden','false'); }
+  _esc(value){ return String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+}
+
+const repair = new RepairSimulatorPro();
+const sequencing = new SequencingSimulatorPro();
+</script>
+</body>
+</html>
