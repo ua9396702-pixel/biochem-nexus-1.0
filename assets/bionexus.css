@@ -87,6 +87,20 @@ p{line-height:1.7}
 @keyframes spinSlow{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 @keyframes bondDrift{0%{stroke-dashoffset:0;opacity:.35}100%{stroke-dashoffset:-140;opacity:.85}}
 .dna-pair-link{fill:none;stroke:rgba(255,255,255,.87);stroke-width:2.8;stroke-linecap:round;filter:drop-shadow(0 0 8px rgba(6,182,212,.18));animation:pairPulse 4.6s ease-in-out infinite}
+.model-viewer-shell{position:relative;display:grid;place-items:center;width:100%;height:100%;min-height:360px;isolation:isolate}
+.landing-model{width:min(100%,430px);height:390px;display:block;z-index:1}
+.landing-model canvas{width:100%;height:100%;display:block}
+.model-fallback{position:absolute;inset:8%;display:grid;place-items:center;border-radius:28px;background:radial-gradient(circle at 50% 45%,rgba(6,182,212,.2),transparent 58%);pointer-events:none}
+.model-orbit{position:absolute;width:74%;aspect-ratio:1/1;border:1px solid rgba(6,182,212,.28);border-radius:50%;animation:spinSlow 18s linear infinite}
+.model-strand{width:110px;height:260px;border-radius:70px;background:linear-gradient(180deg,rgba(6,182,212,.92),rgba(99,102,241,.72));box-shadow:0 24px 60px rgba(59,130,246,.18);animation:floaty 7s ease-in-out infinite}
+.model-strand:before,.model-strand:after{content:"";position:absolute;left:50%;width:150px;height:2px;background:rgba(255,255,255,.82);transform-origin:left center}
+.model-strand:before{top:38%;transform:translateX(-50%) rotate(24deg)}
+.model-strand:after{top:60%;transform:translateX(-50%) rotate(-24deg)}
+.model-node{position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;border:4px solid var(--cyan);box-shadow:0 12px 22px rgba(6,182,212,.18);animation:particleDrift 8s ease-in-out infinite}
+.model-node.n1{top:24%;left:30%}
+.model-node.n2{top:48%;right:28%;animation-delay:.6s}
+.model-node.n3{bottom:24%;left:34%;animation-delay:1.2s}
+.model-viewer-shell.model-loaded .model-fallback{display:none}
 .protein-ribbon{stroke-dasharray:8 8;animation:ribbonFlow 9s linear infinite}
 .protein-sheet{animation:flowPulse 5.2s ease-in-out infinite}
 .pcr-stage,.pcr-arrow,.flow-arrow{animation:flowPulse 5s ease-in-out infinite}
@@ -156,13 +170,17 @@ a.card:focus-visible,button.card:focus-visible,.btn:focus-visible,.pill-button:f
 .reference-topics{color:#375566;font-size:13px}
 .warning{color:#b45309;font-weight:700}
 .footer{margin-top:70px;padding:54px 0 28px;border-top:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,.7),#fff)}
+.footer-signature{display:grid;justify-items:center;text-align:center;gap:10px}
+.footer-brand{font-size:22px}
+.footer-credit{display:grid;gap:4px;color:var(--muted);font-size:14px}
+.footer-credit strong{font-size:18px;color:var(--ink)}
 .footer-grid{display:grid;grid-template-columns:1.4fr repeat(3,1fr) 1.2fr;gap:28px}
 .footer h4{margin:0 0 12px;font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:#52677b}
 .footer ul{list-style:none;margin:0;padding:0;display:grid;gap:9px}
 .footer a,.footer p{color:var(--muted);font-size:14px}
 .newsletter{display:flex;gap:8px;margin-top:12px}
 .newsletter input{min-width:0;flex:1;border:1px solid var(--line);border-radius:999px;padding:11px 13px}
-.footer-bottom{display:flex;justify-content:space-between;gap:16px;margin-top:36px;padding-top:22px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+.footer-bottom{display:flex;justify-content:center;gap:16px;margin-top:30px;padding-top:22px;border-top:1px solid var(--line);color:var(--muted);font-size:13px;text-align:center}
 .portfolio-hero .visual-card{min-height:360px;padding:28px;display:flex;flex-direction:column;justify-content:space-between;gap:18px;background:linear-gradient(135deg,rgba(255,255,255,.95),rgba(220,244,255,.9))}
 .portfolio-badge{display:inline-flex;align-self:flex-start;padding:8px 12px;border-radius:999px;background:rgba(6,182,212,.12);color:#0b5e76;font-weight:800;font-size:13px}
 .portfolio-highlight h3{margin-top:4px}
@@ -269,14 +287,23 @@ a.card:focus-visible,button.card:focus-visible,.btn:focus-visible,.pill-button:f
   .glossary-side{position:static;grid-template-columns:repeat(2,minmax(0,1fr))}
   .glossary-controls{min-width:100%}
   .mobile-toggle{display:block}
-  .nav-links{display:none;position:absolute;left:20px;right:20px;top:68px;flex-direction:column;align-items:stretch;background:#fff;border:1px solid var(--line);border-radius:18px;padding:10px;box-shadow:var(--shadow)}
+  .nav-links{display:flex;position:fixed;left:0;right:auto;top:0;bottom:0;width:min(82vw,340px);max-height:100vh;overflow-y:auto;overscroll-behavior:contain;flex-direction:column;align-items:stretch;background:#fff;border-right:1px solid var(--line);border-radius:0 18px 18px 0;padding:82px 14px 18px;box-shadow:var(--shadow);transform:translateX(-105%);visibility:hidden;transition:transform .22s ease,visibility .22s ease;z-index:60}
   .study-grid{grid-template-columns:1fr}
-  .nav-links.open{display:flex}
-  .nav-link,.nav-button{background:#fff;color:#163347;border-color:var(--line)}
-  .dropdown{position:static;width:auto;opacity:1;visibility:visible;transform:none;box-shadow:none;margin:4px 0 8px;background:var(--surface-soft);border-color:var(--line)}
+  .nav-links.open{transform:translateX(0);visibility:visible}
+  .nav-item{width:100%}
+  .nav-link,.nav-button{width:100%;justify-content:space-between;background:#fff;color:#163347;border-color:var(--line)}
+  .has-dropdown>.nav-button:after{content:"+";font-weight:800;color:#4b7187}
+  .has-dropdown.open>.nav-button:after{content:"-"}
+  .dropdown{position:static;width:auto;display:none;opacity:1;visibility:visible;transform:none;box-shadow:none;margin:6px 0 10px;background:var(--surface-soft);border-color:var(--line);border-radius:14px}
+  .nav-item:hover .dropdown,.nav-item:focus-within .dropdown{display:none}
+  .nav-item.open .dropdown{display:block}
+  .dropdown-section h4{font-size:10px}
+  .dropdown a{padding:9px 10px;font-size:13px}
   .hero-grid,.learning-layout,.toolbox{grid-template-columns:1fr}
   .grid-3,.grid-4,.roadmap,.footer-grid{grid-template-columns:1fr 1fr}
   .visual-card{min-height:320px}
+  .model-viewer-shell{min-height:300px}
+  .landing-model{height:310px}
 }
 @media (max-width:620px){
   .wrap{width:min(100% - 28px,1180px)}

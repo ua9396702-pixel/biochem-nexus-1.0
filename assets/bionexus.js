@@ -48,10 +48,10 @@
         <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle navigation" aria-controls="navLinks" aria-expanded="false">Menu</button>
         <ul class="nav-links" id="navLinks" role="navigation" aria-label="Primary">
           <li class="nav-item"><a class="${navLinkClass('index.html')}" href="${href('index.html')}" ${isCurrentNavPath('index.html') ? 'aria-current="page"' : ''}>Home</a></li>
-          <li class="nav-item"><button class="${navButtonClass(explorePaths)}" type="button">Explore</button><div class="dropdown">${exploreMarkup}</div></li>
-          <li class="nav-item"><button class="${navButtonClass(BN.nav.laboratory.map(([,u])=>u))}" type="button">Laboratory Techniques</button><div class="dropdown"><div class="dropdown-section"><h4>Laboratory Methods</h4>${laboratoryLinks}</div></div></li>
-          <li class="nav-item"><button class="${navButtonClass(BN.nav.tools.map(([,u])=>u))}" type="button">Tools</button><div class="dropdown"><div class="dropdown-section"><h4>Calculators</h4>${toolLinks}</div></div></li>
-          <li class="nav-item"><button class="${navButtonClass(BN.nav.learning.map(([,u])=>u))}" type="button">Learning Center</button><div class="dropdown"><div class="dropdown-section"><h4>Resources</h4>${learningLinks}</div></div></li>
+          <li class="nav-item has-dropdown"><button class="${navButtonClass(explorePaths)}" type="button" aria-expanded="false">Explore</button><div class="dropdown">${exploreMarkup}</div></li>
+          <li class="nav-item has-dropdown"><button class="${navButtonClass(BN.nav.laboratory.map(([,u])=>u))}" type="button" aria-expanded="false">Laboratory Techniques</button><div class="dropdown"><div class="dropdown-section"><h4>Laboratory Methods</h4>${laboratoryLinks}</div></div></li>
+          <li class="nav-item has-dropdown"><button class="${navButtonClass(BN.nav.tools.map(([,u])=>u))}" type="button" aria-expanded="false">Tools</button><div class="dropdown"><div class="dropdown-section"><h4>Calculators</h4>${toolLinks}</div></div></li>
+          <li class="nav-item has-dropdown"><button class="${navButtonClass(BN.nav.learning.map(([,u])=>u))}" type="button" aria-expanded="false">Learning Center</button><div class="dropdown"><div class="dropdown-section"><h4>Resources</h4>${learningLinks}</div></div></li>
           <li class="nav-item"><a class="${navLinkClass('portfolio.html')}" href="${href('portfolio.html')}" ${isCurrentNavPath('portfolio.html') ? 'aria-current="page"' : ''}>Portfolio</a></li>
           <li class="nav-item"><a class="${navLinkClass('about.html')}" href="${href('about.html')}" ${isCurrentNavPath('about.html') ? 'aria-current="page"' : ''}>About</a></li>
           <li class="nav-item"><a class="${navLinkClass('contact.html')}" href="${href('contact.html')}" ${isCurrentNavPath('contact.html') ? 'aria-current="page"' : ''}>Contact</a></li>
@@ -64,14 +64,17 @@
     return `<footer class="footer">
       <button class="back-to-top" type="button" aria-label="Back to top">↑</button>
       <div class="wrap">
-        <div class="footer-grid">
-          <div><a class="brand" href="${href('index.html')}"><span class="brand-mark">${icon('dna')}</span>Bio<span>Nexus</span></a><p>BioNexus is a portfolio-quality interactive learning platform for biochemistry, molecular biology, biotechnology, genetics, and life science students.</p><div class="pill-row"><span class="pill">GitHub</span><span class="pill">LinkedIn</span><span class="pill">Email</span></div></div>
-          <div><h4>Quick Links</h4><ul><li><a href="${href('molecular-biology/dna-explorer.html')}">Molecular Biology</a></li><li><a href="${href('biochemistry/protein-explorer.html')}">Biochemistry</a></li><li><a href="${href('laboratory/pcr.html')}">Laboratory</a></li></ul></div>
-          <div><h4>Resources</h4><ul><li><a href="${href('learning/study-notes.html')}">Study Notes</a></li><li><a href="${href('learning/scientific-glossary.html')}">Glossary</a></li><li><a href="${href('learning/visual-library.html')}">Visual Library</a></li></ul></div>
-          <div><h4>Contact</h4><ul><li><a href="${href('contact.html')}">Contact Form</a></li><li><a href="mailto:hello@bionexus.edu">hello@bionexus.edu</a></li><li><a href="${href('about.html')}">About BioNexus</a></li></ul></div>
-          <div><h4>Newsletter</h4><p>Stay connected with new learning modules and study tools.</p><div class="newsletter"><input aria-label="Email address" placeholder="email@example.com"><button class="btn btn-primary" type="button" aria-label="Join newsletter">Join</button></div></div>
+        <div class="footer-signature">
+          <a class="brand footer-brand" href="${href('index.html')}"><span class="brand-mark">${icon('dna')}</span>Bio<span>Nexus</span></a>
+          <p>Interactive Biochemistry Learning Platform</p>
+          <div class="footer-credit">
+            <span>Designed &amp; Developed by</span>
+            <strong>Umer Ali</strong>
+            <span>BS Biochemistry</span>
+            <span>Quaid-i-Azam University</span>
+          </div>
         </div>
-        <div class="footer-bottom"><span>Copyright ${new Date().getFullYear()} BioNexus.</span><span>Built for interactive science learning.</span></div>
+        <div class="footer-bottom"><span>© 2026 BioNexus. All Rights Reserved.</span></div>
       </div>
     </footer>`;
   }
@@ -184,6 +187,101 @@
     return `<svg viewBox="0 0 520 320" role="img" aria-label="RNA structure"><path d="M132 170c34-58 84-88 140-90 58-2 112 24 148 72" stroke="url(#rnaGradient)" stroke-width="10" stroke-linecap="round" fill="none"/><path d="M132 170c34-58 84-88 140-90 58-2 112 24 148 72" stroke="rgba(255,255,255,.86)" stroke-width="4" stroke-linecap="round" fill="none"/><circle class="hotspot" data-tip="Messenger RNA" cx="170" cy="160" r="18" fill="#fff" stroke="#3b82f6" stroke-width="4"/><circle class="hotspot" data-tip="Transfer RNA" cx="278" cy="118" r="16" fill="#fff" stroke="#14b8a6" stroke-width="4"/><circle class="hotspot" data-tip="Ribosome" cx="360" cy="170" r="22" fill="#fff" stroke="#6366f1" stroke-width="4"/><text x="86" y="292" fill="#64748b" font-size="16">RNA folds into dynamic structures that support transcription and translation.</text><defs><linearGradient id="rnaGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ffffff"/><stop offset="50%" stop-color="#bdeeff"/><stop offset="100%" stop-color="#06b6d4"/></linearGradient></defs></svg>`;
   }
 
+  function landingModel(){
+    return `<div class="model-viewer-shell">
+      <div class="landing-model" id="landingModel" data-model-src="${href('3dModel/source/C4d/DNA.c4d.fbx')}" data-texture-src="${href('3dModel/textures/Bump.jpeg')}" role="img" aria-label="3D DNA model"></div>
+      <div class="model-fallback" aria-hidden="true">
+        <span class="model-orbit"></span>
+        <span class="model-strand"></span>
+        <span class="model-node n1"></span>
+        <span class="model-node n2"></span>
+        <span class="model-node n3"></span>
+      </div>
+    </div>`;
+  }
+
+  async function initLandingFbxModel(){
+    const host = document.getElementById("landingModel");
+    if(!host) return;
+    try{
+      const [THREE, {FBXLoader}, {OrbitControls}] = await Promise.all([
+        import("https://esm.sh/three@0.160.0"),
+        import("https://esm.sh/three@0.160.0/examples/jsm/loaders/FBXLoader.js"),
+        import("https://esm.sh/three@0.160.0/examples/jsm/controls/OrbitControls.js")
+      ]);
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 2000);
+      camera.position.set(0, 90, 320);
+
+      const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      host.appendChild(renderer.domElement);
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.enablePan = false;
+      controls.enableZoom = false;
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 1.4;
+
+      scene.add(new THREE.AmbientLight(0xffffff, 1.8));
+      const key = new THREE.DirectionalLight(0xffffff, 2.3);
+      key.position.set(160, 220, 180);
+      scene.add(key);
+      const fill = new THREE.DirectionalLight(0x7dd3fc, 1.2);
+      fill.position.set(-180, -40, 150);
+      scene.add(fill);
+
+      const texture = await new THREE.TextureLoader().loadAsync(host.dataset.textureSrc);
+      texture.colorSpace = THREE.SRGBColorSpace;
+
+      const loader = new FBXLoader();
+      const model = await loader.loadAsync(host.dataset.modelSrc);
+      const box = new THREE.Box3().setFromObject(model);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      model.position.sub(center);
+      const maxAxis = Math.max(size.x, size.y, size.z) || 1;
+      model.scale.setScalar(210 / maxAxis);
+      model.traverse(child=>{
+        if(child.isMesh){
+          child.castShadow = true;
+          child.receiveShadow = true;
+          child.material = new THREE.MeshStandardMaterial({
+            color:0xdff7ff,
+            roughness:0.34,
+            metalness:0.08,
+            bumpMap:texture,
+            bumpScale:0.025
+          });
+        }
+      });
+      scene.add(model);
+      host.closest(".model-viewer-shell")?.classList.add("model-loaded");
+
+      const resize = ()=>{
+        const rect = host.getBoundingClientRect();
+        const width = Math.max(1, rect.width);
+        const height = Math.max(1, rect.height);
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+        renderer.setSize(width, height, false);
+      };
+      resize();
+      window.addEventListener("resize", resize);
+
+      const animate = ()=>{
+        controls.update();
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+      };
+      animate();
+    }catch(error){
+      console.warn("BioNexus 3D model could not be loaded", error);
+    }
+  }
+
   function home(){
     return `${nav()}<main>
       <section class="hero">
@@ -193,11 +291,10 @@
             <h1>BioNexus turns complex science into clear, guided learning.</h1>
             <p class="lead">Explore molecular biology, biochemistry, laboratory methods, and scientific tools through one cohesive, responsive platform.</p>
             <div class="hero-actions"><a class="btn btn-primary" href="${href('molecular-biology/dna-explorer.html')}">Start with DNA</a><a class="btn btn-secondary" href="${href('tools/molecular-weight-calculator.html')}">Try a tool</a></div>
-            <p class="hero-note">Every page shares the same navigation, footer, typography, and visual system.</p>
           </div>
           <div class="visual-card">
             <div class="helix-art">
-              ${premiumDnaHeroSvg({variant:'hero'})}
+              ${landingModel()}
             </div>
             <span class="floating-label" style="top:24px;right:24px">Shared learning flow</span>
             <span class="floating-label" style="bottom:24px;left:24px">Accessible by design</span>
@@ -629,7 +726,65 @@
   }
 
   function contact(){
-    return `${nav()}<main>${breadcrumbs('contact', {title:'Contact'})}<section class="hero"><div class="wrap"><span class="eyebrow">Contact</span><h1>Contact</h1><p class="lead">For portfolio inquiries, collaboration ideas, and educational feedback, reach out through the form below.</p></div></section><section class="section"><div class="wrap toolBox toolbox"><form class="card form-card"><label>Name</label><input placeholder="Your name" aria-label="Your name"><label>Email</label><input placeholder="your@email.com" type="email" aria-label="Email address"><label>Message</label><textarea rows="6" placeholder="Write your message" aria-label="Message"></textarea><button class="btn btn-primary" type="button">Send Message</button></form><aside class="contact-list"><div class="contact-item"><strong>Location</strong><p class="muted">Available for remote collaboration and portfolio review.</p></div><div class="contact-item"><strong>Email</strong><p class="muted"><a href="mailto:hello@bionexus.edu">hello@bionexus.edu</a></p></div><div class="contact-item"><strong>GitHub</strong><p class="muted"><a href="https://github.com" target="_blank" rel="noreferrer">Open source and project work</a></p></div><div class="contact-item"><strong>LinkedIn</strong><p class="muted"><a href="https://linkedin.com" target="_blank" rel="noreferrer">Professional profile and background</a></p></div></aside></div></section></main>${footer()}`;
+    return `${nav()}<main>${breadcrumbs('contact', {title:'Contact'})}<section class="hero"><div class="wrap"><span class="eyebrow">Contact</span><h1>Contact</h1><p class="lead">For portfolio inquiries, collaboration ideas, and educational feedback, reach out through the form below.</p></div></section><section class="section"><div class="wrap toolBox toolbox"><form class="card form-card" id="contactForm" action="https://formsubmit.co/ajax/umer69799@gmail.com" method="POST" novalidate><input type="hidden" name="_subject" value="New BioNexus contact message"><input type="hidden" name="_template" value="table"><input type="hidden" name="_captcha" value="false"><label>Name</label><input id="contactName" name="name" placeholder="Your name" aria-label="Your name" autocomplete="name" required minlength="2"><label>Email</label><input id="contactEmail" name="email" placeholder="your@email.com" type="email" aria-label="Email address" autocomplete="email" required><label>Message</label><textarea id="contactMessage" name="message" rows="6" placeholder="Write your message" aria-label="Message" required minlength="10"></textarea><button class="btn btn-primary" type="submit">Send Message</button><div class="result" id="contactResult" role="status" aria-live="polite" hidden></div></form><aside class="contact-list"><div class="contact-item"><strong>Location</strong><p class="muted">Available for remote collaboration and portfolio review.</p></div><div class="contact-item"><strong>Email</strong><p class="muted"><a href="mailto:umer69799@gmail.com">umer69799@gmail.com</a></p></div><div class="contact-item"><strong>GitHub</strong><p class="muted"><a href="https://github.com/umer69799" target="_blank" rel="noreferrer">Open source and project work</a></p></div><div class="contact-item"><strong>LinkedIn</strong><p class="muted"><a href="https://www.linkedin.com/search/results/people/?keywords=Umer%20Ali%20Quaid-i-Azam%20University%20Biochemistry" target="_blank" rel="noreferrer">Professional profile and background</a></p></div></aside></div></section></main>${footer()}`;
+  }
+
+  function setupContactForm(){
+    const form = document.getElementById("contactForm");
+    const result = document.getElementById("contactResult");
+    if(!form || !result) return;
+
+    const setResult = (message, isError = false)=>{
+      result.hidden = false;
+      result.innerHTML = isError ? `<span class="warning">${message}</span>` : `<strong>${message}</strong>`;
+    };
+
+    form.addEventListener("submit", async event=>{
+      event.preventDefault();
+      const name = form.elements.name.value.trim();
+      const email = form.elements.email.value.trim();
+      const message = form.elements.message.value.trim();
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      if(name.length < 2){
+        setResult("Please enter your name.", true);
+        form.elements.name.focus();
+        return;
+      }
+      if(!emailPattern.test(email)){
+        setResult("Please enter a valid email address.", true);
+        form.elements.email.focus();
+        return;
+      }
+      if(message.length < 10){
+        setResult("Please write a message of at least 10 characters.", true);
+        form.elements.message.focus();
+        return;
+      }
+
+      const submitButton = form.querySelector('button[type="submit"]');
+      const originalText = submitButton.textContent;
+      submitButton.disabled = true;
+      submitButton.textContent = "Sending...";
+      setResult("Sending your message...");
+
+      try{
+        const formData = new FormData(form);
+        const response = await fetch(form.action, {
+          method:"POST",
+          headers:{Accept:"application/json"},
+          body:formData
+        });
+        if(!response.ok) throw new Error("Message could not be sent.");
+        form.reset();
+        setResult("Thank you. Your message has been sent successfully.");
+      }catch(error){
+        setResult("Sorry, the message could not be sent. Please email umer69799@gmail.com directly.", true);
+      }finally{
+        submitButton.disabled = false;
+        submitButton.textContent = originalText;
+      }
+    });
   }
 
   function setupTool(data){
@@ -769,6 +924,8 @@
     else if(page === "study-notes") html = studentWorkspacePage();
     document.body.innerHTML = html;
     document.body.classList.add("page-ready");
+    if(kind==="home") initLandingFbxModel();
+    if(kind==="contact") setupContactForm();
     if(page === "study-notes" && window.StudentWorkspace?.initStudyNotesPage){
       window.StudentWorkspace.trackPageVisit?.(document.title || 'Student Workspace', window.location.pathname.split('/').pop() || 'study-notes.html');
       window.StudentWorkspace.initStudyNotesPage(BN.learningPages[page] || {title:'Student Workspace',intro:'A personal dashboard for notes, planning, glossary, and progress tracking.'});
@@ -779,6 +936,14 @@
     const navLinks = document.getElementById("navLinks");
     const closeMobileNav = ()=>{ navLinks?.classList.remove("open"); mobileToggle?.setAttribute("aria-expanded", "false"); };
     mobileToggle?.addEventListener("click",()=>{ const isOpen = navLinks?.classList.toggle("open"); mobileToggle.setAttribute("aria-expanded", isOpen ? "true" : "false"); });
+    navLinks?.querySelectorAll(".has-dropdown > .nav-button").forEach(button=>button.addEventListener("click", event=>{
+      if(window.matchMedia("(max-width: 900px)").matches){
+        event.preventDefault();
+        const item = button.closest(".has-dropdown");
+        const isOpen = item.classList.toggle("open");
+        button.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      }
+    }));
     navLinks?.querySelectorAll("a").forEach(link=>link.addEventListener("click", closeMobileNav));
     document.querySelectorAll(".hotspot").forEach(el=>el.addEventListener("mouseenter",()=>{const box=document.getElementById("tipBox"); if(box) box.textContent=el.dataset.tip;}));
     document.querySelectorAll(".hotspot").forEach(el=>el.addEventListener("click",()=>{const box=document.getElementById("tipBox"); if(box) box.textContent=el.dataset.tip;}));
