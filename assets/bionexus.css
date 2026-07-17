@@ -286,11 +286,8 @@ a.card:focus-visible,button.card:focus-visible,.btn:focus-visible,.pill-button:f
   .workspace-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
   .glossary-side{position:static;grid-template-columns:repeat(2,minmax(0,1fr))}
   .glossary-controls{min-width:100%}
-  .site-header{padding:10px 0}
-  .nav{justify-content:flex-start;gap:12px}
-  .mobile-toggle{display:block;order:-1}
-  .brand{margin-right:auto}
-  .nav-links{display:flex;position:fixed!important;left:0!important;right:auto!important;top:0!important;bottom:auto!important;width:min(86vw,360px)!important;height:100vh!important;max-height:none!important;overflow-y:auto;overscroll-behavior:contain;flex-direction:column;align-items:stretch;background:#fff;border:0;border-right:1px solid var(--line);border-radius:0 20px 20px 0;padding:86px 14px 22px;box-shadow:var(--shadow);transform:translateX(-105%);visibility:hidden;transition:transform .22s ease,visibility .22s ease;z-index:100}
+  .mobile-toggle{display:block}
+  .nav-links{display:flex;position:fixed;left:0;right:auto;top:0;bottom:0;width:min(82vw,340px);max-height:100vh;overflow-y:auto;overscroll-behavior:contain;flex-direction:column;align-items:stretch;background:#fff;border-right:1px solid var(--line);border-radius:0 18px 18px 0;padding:82px 14px 18px;box-shadow:var(--shadow);transform:translateX(-105%);visibility:hidden;transition:transform .22s ease,visibility .22s ease;z-index:60}
   .study-grid{grid-template-columns:1fr}
   .nav-links.open{transform:translateX(0);visibility:visible}
   .nav-item{width:100%}
