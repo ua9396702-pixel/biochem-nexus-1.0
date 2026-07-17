@@ -45,8 +45,9 @@
     return `<header class="site-header">
       <div class="wrap nav">
         <a class="brand" href="${href('index.html')}"><span class="brand-mark">${icon('dna')}</span>Bio<span>Nexus</span></a>
-        <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle navigation" aria-controls="navLinks" aria-expanded="false">Menu</button>
+        <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle navigation" aria-controls="navLinks" aria-expanded="false"><span></span><span></span><span></span></button>
         <ul class="nav-links" id="navLinks" role="navigation" aria-label="Primary">
+          <li class="mobile-nav-close-row"><button class="mobile-nav-close" id="mobileNavClose" type="button" aria-label="Close navigation"><span></span><span></span><span></span></button></li>
           <li class="nav-item"><a class="${navLinkClass('index.html')}" href="${href('index.html')}" ${isCurrentNavPath('index.html') ? 'aria-current="page"' : ''}>Home</a></li>
           <li class="nav-item has-dropdown"><button class="${navButtonClass(explorePaths)}" type="button" aria-expanded="false">Explore</button><div class="dropdown">${exploreMarkup}</div></li>
           <li class="nav-item has-dropdown"><button class="${navButtonClass(BN.nav.laboratory.map(([,u])=>u))}" type="button" aria-expanded="false">Laboratory Techniques</button><div class="dropdown"><div class="dropdown-section"><h4>Laboratory Methods</h4>${laboratoryLinks}</div></div></li>
@@ -933,9 +934,11 @@
       window.StudentWorkspace?.trackPageVisit?.(document.title || 'BioNexus page', window.location.pathname.split('/').pop() || 'index.html');
     }
     const mobileToggle = document.getElementById("mobileToggle");
+    const mobileNavClose = document.getElementById("mobileNavClose");
     const navLinks = document.getElementById("navLinks");
     const closeMobileNav = ()=>{ navLinks?.classList.remove("open"); mobileToggle?.setAttribute("aria-expanded", "false"); };
     mobileToggle?.addEventListener("click",()=>{ const isOpen = navLinks?.classList.toggle("open"); mobileToggle.setAttribute("aria-expanded", isOpen ? "true" : "false"); });
+    mobileNavClose?.addEventListener("click", closeMobileNav);
     navLinks?.querySelectorAll(".has-dropdown > .nav-button").forEach(button=>button.addEventListener("click", event=>{
       if(window.matchMedia("(max-width: 900px)").matches){
         event.preventDefault();
