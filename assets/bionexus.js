@@ -342,6 +342,25 @@
     return scientificPathwaySvg(type);
   }
 
+  // Returns HTML for the 3D DNA viewer integration (Sketchfab embed) with fallback
+  function dna3dViewer(){
+    // Use the existing SVG as a fallback (scientificDnaSvg)
+    const fallback = scientificDnaSvg({label: 'Fallback DNA double helix illustration'});
+    return `
+      <div class="dna-3d-shell">
+        <div class="dna-3d-container" id="dna3dContainer" role="group" aria-label="Interactive three-dimensional model of the DNA double helix">
+          <div class="dna-3d-frame" id="dna3dFrame">
+            <div class="dna-3d-loading">Loading 3D model…</div>
+            <div class="dna-3d-fallback" id="dna3dFallback">${fallback}</div>
+          </div>
+          <div class="dna-3d-meta">
+            <div class="dna-3d-actions"><button id="dna3dLoad" class="btn btn-secondary">Load 3D Model</button></div>
+            <div class="dna-3d-attrib"><strong>3D Model:</strong> DNA — <a href="https://skfb.ly/6YBEE" target="_blank" rel="noopener noreferrer">Sketchfab</a> by <em>absolution</em> — <span>Creative Commons Attribution-NonCommercial</span></div>
+          </div>
+        </div>
+      </div>`;
+  }
+
   function buildTopicStudyGuide(page, data){
     const guides = {
       'dna-explorer':{overview:["DNA stores hereditary information as a sequence of bases arranged in an antiparallel double helix.","Complementary base pairing allows accurate replication and transcription while preserving genomic information.","DNA structure explains stability, mutation, and the logic of sequencing, repair, and gene editing."],sections:[{title:"Definition",body:"DNA is a polymer of deoxyribonucleotides joined by phosphodiester bonds. Its base order carries the information required to build and regulate cells."},{title:"Structure",body:"The double helix has major and minor grooves, a consistent sugar-phosphate backbone, and complementary A-T and G-C pairing. These features influence protein binding and DNA accessibility."},{title:"Biological role",body:"DNA must be replicated before cell division, transcribed into RNA when a gene is active, and repaired when lesions arise. These processes are central to inheritance and cell identity."},{title:"Laboratory relevance",body:"DNA isolation, amplification, sequencing, and restriction analysis are foundational methods in biotechnology, forensics, diagnostics, and synthetic biology."}],examTips:["Always state 5′ and 3′ orientation when discussing replication or polymerase activity.","Link base pairing to hydrogen bonding and to the stability of the helix."],commonMistakes:["Confusing DNA with genes; many non-coding regions regulate expression and genome organization.","Assuming every mutation is harmful; many are neutral or context-dependent."],faq:[{q:"Why is DNA called an information molecule?",a:"Because the order of bases acts as a coded instruction set for RNA synthesis, protein production, and cellular regulation."},{q:"What is the difference between a gene and a genome?",a:"A gene is a segment with a defined functional role, while a genome is the complete DNA content of an organism or cell."}],related:[["DNA Repair","molecular-biology/dna-repair.html"],["DNA Sequencing","molecular-biology/dna-sequencing.html"],["Gene Expression","molecular-biology/gene-expression.html"]]},
@@ -617,9 +636,9 @@
     const keyConcepts = data.terms.slice(0,4).map(term=>`<li>${term}</li>`).join("");
     return `${nav()}<main>
       ${breadcrumbs('topic', data)}
-      <section class="hero"><div class="wrap hero-grid"><div><span class="eyebrow">${data.hub}</span><h1>${data.title}</h1><p class="lead">${data.intro}</p><div class="hero-actions"><a class="btn btn-primary" href="#interactive">Open Interactive Diagram</a><a class="btn btn-secondary" href="#references">References</a></div></div><div class="visual-card"><div class="helix-art">${diagram(data.diagram)}</div><span class="floating-label" style="top:22px;right:22px">Interactive model</span><span class="floating-label" style="bottom:24px;left:24px">Hover labels</span></div></div></section>
+      <section class="hero"><div class="wrap hero-grid"><div><span class="eyebrow">${data.hub}</span><h1>${data.title}</h1><p class="lead">${data.intro}</p><div class="hero-actions"><a class="btn btn-primary" href="#interactive">Open Interactive Diagram</a><a class="btn btn-secondary" href="#references">References</a></div></div><div class="visual-card"><div class="helix-art"><div class="module-illustration large">${icon(data.icon || 'dna')}</div></div><span class="floating-label" style="top:22px;right:22px">Interactive model</span><span class="floating-label" style="bottom:24px;left:24px">Hover labels</span></div></div></section>
       <section class="section" id="interactive"><div class="wrap learning-layout"><div class="grid">
-        <div class="panel diagram">${diagram(data.diagram)}<div id="tipBox" class="result" role="status" aria-live="polite">Hover or tap a highlighted structure to see an explanation.</div></div>
+        <div class="panel diagram">${pageKey === 'dna-explorer' ? dna3dViewer() : diagram(data.diagram)}<div id="tipBox" class="result" role="status" aria-live="polite">Hover or tap a highlighted structure to see an explanation.</div></div>
         <div class="card"><h2>Learning Objectives</h2><ul class="study-list">${learningObjectives.map(item=>`<li>${item}</li>`).join("")}</ul></div>
         <div class="card"><h2>Key Concepts</h2><ul class="study-list">${keyConcepts}</ul></div>
         <div class="card"><h2>Step-by-Step Learning</h2><div class="steps">${steps.map((s,i)=>`<div class="step"><div class="step-num">${i+1}</div><div><strong>${s}</strong><p class="muted">${i===0?data.importance:i===1?"Use the terminology list to name structures precisely.":i===2?"Animate the visual sequence and explain cause before outcome.":"Apply the topic to clinical and research contexts."}</p></div></div>`).join("")}</div></div>
