@@ -1,98 +1,178 @@
 (function(){
-  const CHECK_INTERVAL = 150;
+  const CHECK_INTERVAL = 120;
   function whenPageReady(cb){
-    const id = setInterval(()=>{
-      if(document.body.classList.contains('page-ready')){ clearInterval(id); cb(); }
-    }, CHECK_INTERVAL);
-    // safety
+    const id = setInterval(()=>{ if(document.body.classList.contains('page-ready')){ clearInterval(id); cb(); } }, CHECK_INTERVAL);
     setTimeout(()=>clearInterval(id), 10000);
   }
 
-  const VL = {
-    techniques: {},
-    state: { current: null, selections: {}, playIndex:0, playing:false, speed:1 }
+  const Engine = {
+    experiments: {},
+    state: { current:null, selections:{}, step:0, playing:false, speed:1, onFinish:null }
   };
 
-  // Data-driven configs for each existing lab technique
-  VL.techniques = {
+  // Helper utilities
+  function capitalize(s){ return (s||'').toString().replace(/[-_]/g,' ').replace(/\b\w/g,c=>c.toUpperCase()); }
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+
+  // Define experiments in a data-driven way. Each experiment defines materials, UI fields, validation, steps, animation and result logic.
+  Engine.experiments = {
     'pcr':{
-      title:'PCR',
-      key:'pcr',
-      materials:{sample:['Genomic DNA','Plasmid DNA','cDNA'], polymerase:['Taq (standard)','High-fidelity polymerase','Hot-start Taq'], primerTm:['55°C','60°C','65°C'], mg:['1.5 mM','2.5 mM','4.0 mM']},
-      steps:[{title:'Denaturation',desc:'Separate DNA strands by heating.'},{title:'Annealing',desc:'Primers bind to complementary sequence.'},{title:'Extension',desc:'Polymerase extends primers to make new DNA.'}],
-      validate: function(sel){
-        const tm = Number(sel.primerTm.replace('°C',''));
-        const anneal = tm - 5; // ideal
-        const chosenAnneal = Number(sel.annealTemp?.replace('°C','') || (tm-5));
-        if(!sel.sample || !sel.polymerase || !sel.primerTm) return {status:'incorrect',step:'setup',hint:'Missing a required reagent or primer selection.'};
-        const diff = Math.abs(chosenAnneal - anneal);
-        if(diff===0 && sel.mg==='2.5 mM') return {status:'correct'};
-        if(diff<=2) return {status:'suboptimal',hint:'Annealing temperature is near ideal but Mg2+ concentration could be optimised.'};
-        return {status:'incorrect',hint:'Chosen annealing temperature is inappropriate for the primers and will reduce specificity.'};
+      id:'pcr', title:'PCR', refs:(window.BN && window.BN.topicPages && window.BN.topicPages.pcr && window.BN.topicPages.pcr.refs) || [],
+      fields:[
+        {name:'sample',label:'Sample',type:'select',options:['E. coli DNA (K-12)','Bacillus subtilis DNA','Human genomic DNA','Positive control','Negative control','Unknown sample']},
+        {name:'polymerase',label:'Polymerase',type:'select',options:['Taq (standard)','Hot-start Taq','High-fidelity polymerase']},
+        {name:'primerTm',label:'Primer Tm',type:'select',options:['52°C','55°C','58°C','60°C','62°C']},
+        {name:'annealTemp',label:'Annealing temp',type:'number',min:45,max:68,step:1,default:55},
+        {name:'mg',label:'MgCl2',type:'select',options:['1.5 mM','2.5 mM','4.0 mM']},
+        {name:'cycles',label:'Cycles',type:'number',min:20,max:40,step:1,default:30}
+      ],
+      steps:function(sel){ return [
+        {key:'prep',title:'Prepare master mix',desc:'Combine polymerase, primers, dNTPs, buffer and template.'},
+        {key:'load',title:'Load into thermal cycler',desc:'Place tubes into thermal cycler wells.'},
+        {key:'cycles',title:'Thermal cycling',desc:`Run ${sel.cycles || 30} cycles of denaturation, annealing and extension.`},
+        {key:'detect',title:'Detection',desc:'Visualize product on gel or read qPCR signal.'}
+      ]; },
+      validate:function(sel){
+        if(!sel.sample || !sel.polymerase || !sel.primerTm) return {status:'incorrect',hint:'Missing sample, polymerase or primer Tm.'};
+        const tm = Number((sel.primerTm||'55').replace('°C',''));
+        const anneal = Number(sel.annealTemp || (tm-5));
+        const diff = Math.abs(anneal - (tm-5));
+        if(diff<=2 && sel.mg==='2.5 mM' && sel.polymerase!=='Taq (standard)') return {status:'correct'};
+        if(diff<=3) return {status:'suboptimal',hint:'Annealing temperature near ideal; enzyme choice or Mg2+ may be suboptimal.'};
+        return {status:'incorrect',hint:'Annealing temperature poorly matched to primer Tm; expect non-specific bands or low yield.'};
       },
-      animationSteps:function(){
-        return this.steps.map(s=>({title:s.title,desc:s.desc}));
+      // animation frame generator: returns SVG for each step reflecting selections
+      frame:function(sel,stepIndex){ const steps = this.steps(sel); const step = steps[stepIndex] || steps[steps.length-1];
+        // show tubes and labels reflecting sample and polymerase. animate liquid height to simulate addition
+        const sampleLabel = (sel.sample||'Sample').replace('(low copy)','').replace('(high copy)','').trim();
+        const enzyme = sel.polymerase || '';
+        const cycleText = `Cycles: ${sel.cycles||30}`;
+        return `<div class="vl-canvas"><svg viewBox="0 0 640 360" role="img" aria-label="PCR simulation"><rect x="12" y="12" width="616" height="336" rx="8" fill="#ffffff" stroke="#e6eef7"/><g transform="translate(40,60)">`+
+          // tubes
+          `<g id="tubes">${[0,1,2].map((i)=>`<g transform="translate(${i*140},0)"><rect x="0" y="0" width="64" height="160" rx="8" fill="#f8fafc" stroke="#cbd5e1"></rect><rect x="8" y="80" width="48" height="64" rx="6" fill="${i===0? '#dbeafe':'#e6fffa'}" stroke="#cbd5e1"></rect><text x="0" y="-8" fill="#64748b" font-size="12">${i===0?sampleLabel:i===1?enzyme:'Master mix'}</text></g>`).join('')}</g>`+
+          `<g transform="translate(480,24)"><text x="0" y="0" fill="#0f172a" font-size="14" font-weight="600">${step.title}</text><text x="0" y="20" fill="#64748b" font-size="12">${step.desc}</text><text x="0" y="44" fill="#64748b" font-size="12">${cycleText}</text></g>`+
+        `</g></svg></div>`; },
+      result:function(sel,validation){
+        // simple quantitative model: base yield depends on sample copy number and validation
+        const copy = (sel.sample||'').includes('high')? 1000 : (sel.sample||'').includes('low')? 10 : 100;
+        const enzymeFactor = sel.polymerase && sel.polymerase.includes('High-fidelity')?1.0: sel.polymerase && sel.polymerase.includes('Hot-start')?1.1:0.9;
+        const cycleFactor = clamp((sel.cycles||30)/30,0.5,2);
+        const quality = validation.status==='correct'?1.0: validation.status==='suboptimal'?0.5:0.15;
+        const yieldValue = Math.round(copy * enzymeFactor * cycleFactor * quality);
+        // band visibility logic
+        const bands = [];
+        if(yieldValue>800) bands.push({pos:80,intensity:0.95});
+        if(yieldValue>200) bands.push({pos:140,intensity:0.8});
+        if(yieldValue>50) bands.push({pos:200,intensity:0.6});
+        const success = validation.status==='correct' && yieldValue>100;
+        return {grade: success? 'success' : (validation.status==='suboptimal'? 'partial' : 'fail'), yield:yieldValue, bands};
+      },
+      interpret:function(sel,validation,outcome){
+        const expected = 'A clear band at expected size if primers match the template.';
+        let why = '';
+        if(outcome.grade==='success') why = 'Good enzyme choice, annealing temperature and Mg2+ produced efficient amplification.';
+        else if(outcome.grade==='partial') why = 'Amplification occurred but yield or specificity reduced by suboptimal conditions.';
+        else why = 'Poor annealing temperature, wrong enzyme, or low input template led to minimal amplification.';
+        return {result:outcome, expected, observed:`Yield ~ ${outcome.yield}`, interpretation:why, improvements:'Adjust annealing temperature, increase template concentration, or switch to a more suitable polymerase.'};
       }
     },
+
     'gel-electrophoresis':{
-      title:'Gel Electrophoresis',key:'gel-electrophoresis',
-      materials:{sampleSize:['100 bp','1,000 bp','5,000 bp'],agarose:['0.8%','1.0%','2.0%'],buffer:['TAE','TBE'],ladder:['Present','Absent'],voltage:['50 V','100 V','150 V']},
-      steps:[{title:'Cast gel',desc:'Prepare gel matrix with correct percentage.'},{title:'Load samples',desc:'Load ladder and samples into wells.'},{title:'Run gel',desc:'Apply voltage to separate fragments.'},{title:'Stain and visualize',desc:'Stain the gel and interpret bands.'}],
-      validate:function(sel){
-        if(!sel.sampleSize || !sel.agarose) return {status:'incorrect',hint:'Select a sample size and gel percentage.'};
-        const map = {'100 bp':'2.0%','1,000 bp':'1.0%','5,000 bp':'0.8%'};
-        const ideal = map[sel.sampleSize];
-        if(sel.agarose===ideal && sel.ladder==='Present' && Number(sel.voltage.split(' ')[0])<=120) return {status:'correct'};
-        if(sel.agarose===ideal) return {status:'suboptimal',hint:'Consider adding a ladder and using a moderate voltage for best resolution.'};
-        return {status:'incorrect',hint:'Gel percentage does not match fragment size, causing poor separation.'};
-      },
-      animationSteps:function(){return this.steps.map(s=>({title:s.title,desc:s.desc}));}
+      id:'gel-electrophoresis', title:'Gel Electrophoresis', refs:(window.BN && window.BN.topicPages && window.BN.topicPages['gel-electrophoresis'] && window.BN.topicPages['gel-electrophoresis'].refs) || [],
+      fields:[
+        {name:'sample',label:'Sample',type:'select',options:['PCR product 100 bp','PCR product 1,000 bp','Genomic digest 5,000 bp','Positive control','Negative control','Unknown sample']},
+        {name:'agarose',label:'Agarose %',type:'select',options:['0.8%','1.0%','2.0%']},
+        {name:'ladder',label:'Ladder',type:'select',options:['Present','Absent']},
+        {name:'voltage',label:'Voltage (V)',type:'select',options:['50','100','150']}
+      ],
+      steps:function(sel){ return [
+        {key:'cast',title:'Prepare gel',desc:`Cast ${sel.agarose||'1.0%'} agarose gel.`},
+        {key:'load',title:'Load samples',desc:'Load ladder and samples into wells carefully.'},
+        {key:'run',title:'Run gel',desc:`Run at ${sel.voltage||100} V until separation visible.`},
+        {key:'stain',title:'Stain & image',desc:'Stain the gel and visualize bands under UV.'}
+      ]; },
+      validate:function(sel){ if(!sel.sampleType || !sel.agarose) return {status:'incorrect',hint:'Select sample and agarose percentage.'}; const ideal = sel.sampleType.includes('100')? '2.0%' : sel.sampleType.includes('1,000')? '1.0%' : '0.8%'; if(sel.agarose===ideal && sel.ladder==='Present') return {status:'correct'}; if(sel.agarose===ideal) return {status:'suboptimal',hint:'Add ladder for size comparison.'}; return {status:'incorrect',hint:'Gel percentage mismatched to fragment size; expect poor resolution.'}; },
+      frame:function(sel,stepIndex){ const wells = 6; const sampleIndex = 2; const frag = sel.sampleType||''; const size = frag.includes('100')?100: frag.includes('1,000')?1000:5000; // simple
+        // generate bands based on sample and agarose
+        return `<div class="vl-canvas"><svg viewBox="0 0 640 360"><rect x="12" y="12" width="616" height="336" rx="8" fill="#fff" stroke="#e6eef7"/><g transform="translate(40,40)"><rect x="0" y="0" width="520" height="260" rx="6" fill="#f8fafc" stroke="#e6f6ff"/></g><g transform="translate(80,70)">`+
+          Array.from({length:wells}).map((_,i)=>`<g transform="translate(${i*60},0)"><rect x="0" y="0" width="36" height="26" rx="4" fill="#e6f6ff"></rect></g>`).join('')+
+          `<g transform="translate(0,120)">${renderGelBands(size, sel.agarose, stepIndex)}</g></svg></div>`; },
+      result:function(sel,validation){ const size = sel.sampleType && sel.sampleType.includes('100')?100: sel.sampleType && sel.sampleType.includes('1,000')?1000:5000; const resolutionOk = (sel.agarose==='2.0%' && size<=200) || (sel.agarose==='1.0%' && size<=2000) || (sel.agarose==='0.8%' && size>2000); const success = validation.status==='correct' && resolutionOk; return {grade: success? 'success': (validation.status==='suboptimal' ? 'partial' : 'fail'), size, resolutionOk}; },
+      interpret:function(sel,validation,outcome){ const expected = `Bands at expected positions according to fragment size.`; let obs=''; if(outcome.grade==='success') obs='Clear discrete bands at expected migration distances.'; else if(outcome.grade==='partial') obs='Bands visible but ladder missing or faint; sizing approximate.'; else obs='Smearing or no clear bands; poor separation or loading error.'; const why = outcome.grade==='success'? 'Gel % and ladder appropriate.' : outcome.grade==='partial'? 'Missing ladder reduces sizing confidence.' : 'Wrong gel %, high voltage or degraded sample.'; return {result:outcome, expected, observed:obs, interpretation:why, improvements:'Use appropriate gel %, include ladder, reduce voltage or improve loading technique.'}; }
     },
-    'elisa':{
-      title:'ELISA',key:'elisa',materials:{format:['Sandwich','Indirect','Direct'],controls:['Positive control','Negative control','Blank'],incubation:['Room temp 1h','37°C 30min'],wash:['3 washes','1 wash','No wash']},
-      steps:[{title:'Coating/Capture',desc:'Capture antibody immobilizes target.'},{title:'Blocking',desc:'Reduce non-specific binding.'},{title:'Detection',desc:'Add detection antibodies and substrate.'},{title:'Read',desc:'Measure signal and compare with standards.'}],
-      validate:function(sel){ if(sel.format && sel.controls && sel.wash==='3 washes') return {status:'correct'}; if(sel.wash!=='3 washes') return {status:'suboptimal',hint:'Insufficient wash steps increase background.'}; return {status:'incorrect',hint:'Missing essential controls or detection reagents.'}; },
-      animationSteps:function(){return this.steps.map(s=>({title:s.title,desc:s.desc}));}
-    },
-    'western-blot':{
-      title:'Western Blot',key:'western-blot',materials:{gelPercent:['8%','10%','12%'],transfer:['Wet transfer','Semi-dry transfer'],primaryAntibody:['Anti-target 1:1000','Anti-target 1:5000'],loadingControl:['Actin','Tubulin','None']},
-      steps:[{title:'SDS-PAGE',desc:'Separate proteins by size.'},{title:'Transfer',desc:'Move proteins to membrane.'},{title:'Blocking & probing',desc:'Probe with antibodies.'},{title:'Detection',desc:'Develop and image membrane.'}],
-      validate:function(sel){ if(sel.loadingControl!=='None' && sel.transfer) return {status:'correct'}; if(sel.loadingControl==='None') return {status:'suboptimal',hint:'A loading control is recommended to compare lanes.'}; return {status:'incorrect',hint:'Missing transfer method or antibody selection.'}; },
-      animationSteps:function(){return this.steps.map(s=>({title:s.title,desc:s.desc}));}
-    },
+
     'spectrophotometry':{
-      title:'Spectrophotometry',key:'spectrophotometry',materials:{wavelength:['260 nm','280 nm','595 nm'],blank:['Solvent blank','No blank'],dilution:['No dilution','1:10','1:100']},
-      steps:[{title:'Blanking',desc:'Set baseline with blank.'},{title:'Measure sample',desc:'Read absorbance at chosen wavelength.'},{title:'Calculate concentration',desc:'Use Beer-Lambert law or standard curve.'}],
-      validate:function(sel){ if(sel.blank==='Solvent blank' && sel.wavelength) return {status:'correct'}; if(sel.blank!=='Solvent blank') return {status:'suboptimal',hint:'Without a blank, readings may be inaccurate due to background.'}; return {status:'incorrect',hint:'Select a valid wavelength for your analyte.'}; },
-      animationSteps:function(){return this.steps.map(s=>({title:s.title,desc:s.desc}));}
+      id:'spectrophotometry', title:'Spectrophotometry', refs:(window.BN && window.BN.topicPages && window.BN.topicPages.spectrophotometry && window.BN.topicPages.spectrophotometry.refs) || [],
+      fields:[{name:'sample',label:'Sample',type:'select',options:['Nucleic acid solution (DNA)','Protein assay solution','Blank only','Unknown sample']},{name:'wavelength',label:'Wavelength (nm)',type:'select',options:['260','280','595']},{name:'blank',label:'Blank',type:'select',options:['Solvent blank','No blank']},{name:'dilution',label:'Dilution',type:'select',options:['1','1:10','1:100']}],
+      steps:function(){ return [{key:'blank',title:'Blank the instrument',desc:'Place blank and zero the absorbance.'},{key:'measure',title:'Measure sample',desc:'Place cuvette and record absorbance.'},{key:'calc',title:'Calculate concentration',desc:'Apply Beer-Lambert or standard curve.'}]; },
+      validate:function(sel){ if(sel.blank==='Solvent blank') return {status:'correct'}; return {status:'suboptimal',hint:'Blanking improves accuracy; without blank expect background.'}; },
+      frame:function(sel,stepIndex){ const w = sel.wavelength||260; const val = sel.dilution==='1:100'?0.15: sel.dilution==='1:10'?0.95: 1.8; const a = (val * (w===260?0.9: w===280?0.8:0.65)).toFixed(2); return `<div class="vl-canvas"><svg viewBox="0 0 640 360"><rect x="12" y="12" width="616" height="336" rx="8" fill="#fff" stroke="#e6eef7"/><g transform="translate(60,60)"><rect x="0" y="0" width="220" height="160" rx="8" fill="#fff" stroke="#cbd5e1"></rect><text x="10" y="-8" fill="#64748b">Spectrophotometer</text><text x="10" y="36" fill="#0f172a">Wavelength: ${w} nm</text><text x="10" y="60" fill="#0f172a">Abs: ${a}</text></g></svg></div>`; },
+      result:function(sel,validation){ const base = sel.wavelength==='260'?50: sel.wavelength==='280'?40: 10; const dilution = sel.dilution==='1:100'?0.01: sel.dilution==='1:10'?0.1:1; const value = Math.round(base * dilution * (validation.status==='correct'?1:0.6)); return {grade: validation.status==='correct'? 'success':'partial', value}; },
+      interpret:function(sel,validation,outcome){ const expected='Absorbance proportional to concentration within linear range.'; const obs=`Measured value ${outcome.value} (arbitrary units).`; const why = validation.status==='correct'? 'Blanking and correct dilution used.' : 'No blank or poor dilution can bias result.'; return {result:outcome, expected, observed:obs, interpretation:why, improvements:'Use proper blank and adjust dilution to stay within linear range.'}; }
     },
+
+    'elisa':{
+      id:'elisa', title:'ELISA', refs:(window.BN && window.BN.topicPages && window.BN.topicPages.elisa && window.BN.topicPages.elisa.refs) || [],
+      fields:[{name:'sample',label:'Sample',type:'select',options:['Patient serum (positive)','Patient serum (negative)','Positive control','Negative control','Unknown sample']},{name:'format',label:'Format',type:'select',options:['Sandwich','Indirect','Direct']},{name:'controls',label:'Controls',type:'select',options:['Positive and negative','Only negative','None']},{name:'wash',label:'Wash steps',type:'select',options:['3 washes','1 wash','No wash']},{name:'incubation',label:'Incubation',type:'select',options:['Room temp 1h','37°C 30min']}],
+      steps:function(){ return [{key:'coat',title:'Coating',desc:'Capture antibody binds to plate.'},{key:'block',title:'Blocking',desc:'Block to reduce background.'},{key:'detect',title:'Detection',desc:'Add detection antibody and substrate.'},{key:'read',title:'Read',desc:'Measure absorbance.'}]; },
+      validate:function(sel){ if(sel.controls && sel.controls.includes('Positive') && sel.wash==='3 washes') return {status:'correct'}; if(sel.wash!=='3 washes') return {status:'suboptimal',hint:'Insufficient washes increase background.'}; return {status:'incorrect',hint:'Missing controls or detection reagents.'}; },
+      frame:function(sel,stepIndex){ const steps=this.steps(); const step=steps[stepIndex]||steps[steps.length-1]; return `<div class="vl-canvas"><svg viewBox="0 0 640 360"><rect x="12" y="12" width="616" height="336" rx="8" fill="#fff" stroke="#e6eef7"/><g transform="translate(60,60)"><rect x="0" y="0" width="420" height="200" rx="8" fill="#fff" stroke="#cbd5e1"/><text x="12" y="-8" fill="#64748b">${step.title}</text><text x="12" y="16" fill="#64748b">${step.desc}</text></g></svg></div>`; },
+      result:function(sel,validation){ const baseSignal = sel.format==='Sandwich'?100: sel.format==='Indirect'?70:40; const washFactor = sel.wash==='3 washes'?1: sel.wash==='1 wash'?0.6:0.25; const ctrl = sel.controls && sel.controls.includes('Positive'); const signal = Math.round(baseSignal * washFactor * (validation.status==='correct'?1:0.6)); return {grade: ctrl && validation.status==='correct'? 'success': (validation.status==='suboptimal'? 'partial':'fail'), signal}; },
+      interpret:function(sel,validation,outcome){ const expected='A strong signal in positive wells and low background in negatives.'; const obs=`Signal: ${outcome.signal}`; const why = outcome.grade==='success'? 'Appropriate controls and wash steps produced clear signal.' : outcome.grade==='partial'? 'Some background due to insufficient washes.' : 'Poor controls/washing led to high background or low signal.'; return {result:outcome, expected, observed:obs, interpretation:why, improvements:'Improve wash steps, include appropriate controls, and verify antibody specificity.'}; }
+    },
+
+    'western-blot':{
+      id:'western-blot', title:'Western Blot', refs:(window.BN && window.BN.topicPages && window.BN.topicPages['western-blot'] && window.BN.topicPages['western-blot'].refs) || [],
+      fields:[{name:'sample',label:'Sample',type:'select',options:['Lysate A (HeLa)','Lysate B (E. coli)','Positive control','Negative control','Unknown sample']},{name:'gelPercent',label:'Gel %',type:'select',options:['8%','10%','12%']},{name:'transfer',label:'Transfer',type:'select',options:['Wet transfer','Semi-dry transfer']},{name:'primary',label:'Primary antibody',type:'select',options:['Anti-target 1:1000','Anti-target 1:5000']},{name:'loadingControl',label:'Loading control',type:'select',options:['Actin','Tubulin','None']}],
+      steps:function(){ return [{key:'separate',title:'SDS-PAGE',desc:'Separate proteins by size.'},{key:'transfer',title:'Transfer',desc:'Transfer proteins to membrane.'},{key:'probe',title:'Probe',desc:'Probe with primary and secondary antibodies.'},{key:'detect',title:'Detect',desc:'Visualize bands.'}]; },
+      validate:function(sel){ if(sel.loadingControl!=='None' && sel.transfer) return {status:'correct'}; if(sel.loadingControl==='None') return {status:'suboptimal',hint:'Add a loading control to allow lane comparisons.'}; return {status:'incorrect',hint:'Missing transfer or antibody selection.'}; },
+      frame:function(sel,stepIndex){ return `<div class="vl-canvas"><svg viewBox="0 0 640 360"><rect x="12" y="12" width="616" height="336" rx="8" fill="#fff" stroke="#e6eef7"/><g transform="translate(80,80)"><rect x="0" y="0" width="480" height="180" rx="6" fill="#fff" stroke="#cbd5e1"/><text x="12" y="-8" fill="#64748b">${this.steps? this.steps[stepIndex]:'Western blot step'}</text></g></svg></div>`; },
+      result:function(sel,validation){ const bands = sel.loadingControl==='None'? false: true; const success = validation.status==='correct' && bands; return {grade: success? 'success': (validation.status==='suboptimal' ? 'partial' : 'fail'), bands}; },
+      interpret:function(sel,validation,outcome){ const expected='Distinct protein bands at expected sizes with loading control present.'; const obs = outcome.bands? 'Bands visible; loading control present.' : 'Weak signal or missing loading control.'; const why = outcome.grade==='success'? 'Good transfer and antibody specificity.' : outcome.grade==='partial'? 'Signal present but controls missing or weak.' : 'Transfer or antibody issues.'; return {result:outcome, expected, observed:obs, interpretation:why, improvements:'Ensure efficient transfer, use proper antibody dilutions and include loading controls.'}; }
+    },
+
     'chromatography':{
-      title:'Chromatography',key:'chromatography',materials:{mode:['Affinity','Ion exchange','Size exclusion','Reverse phase'],mobilePhase:['Aqueous','Organic'],flowRate:['0.5 mL/min','1.0 mL/min','2.0 mL/min']},
-      steps:[{title:'Load sample',desc:'Inject sample onto column.'},{title:'Separation',desc:'Components elute at different times.'},{title:'Detection',desc:'Collect fractions or detect peaks.'}],
-      validate:function(sel){ if(sel.mode && sel.mobilePhase) return {status:'correct'}; return {status:'incorrect',hint:'Choose a chromatographic mode and compatible mobile phase.'}; },
-      animationSteps:function(){return this.steps.map(s=>({title:s.title,desc:s.desc}));}
+      id:'chromatography', title:'Chromatography', refs:(window.BN && window.BN.topicPages && window.BN.topicPages.chromatography && window.BN.topicPages.chromatography.refs) || [],
+      fields:[{name:'sample',label:'Sample',type:'select',options:['Mixture A (3 components)','Mixture B (2 components)','Standard mix','Unknown sample']},{name:'mode',label:'Mode',type:'select',options:['Affinity','Ion exchange','Size exclusion','Reverse phase']},{name:'mobilePhase',label:'Mobile phase',type:'select',options:['Aqueous','Organic']},{name:'flowRate',label:'Flow rate',type:'select',options:['0.5','1.0','2.0']}],
+      steps:function(){ return [{key:'inject',title:'Inject sample',desc:'Inject the sample onto the column.'},{key:'separate',title:'Separation',desc:'Components separate by affinity or size.'},{key:'detect',title:'Detection',desc:'Monitor detector output.'}]; },
+      validate:function(sel){ if(sel.mode && sel.mobilePhase) return {status:'correct'}; return {status:'incorrect',hint:'Choose a chromatographic mode and mobile phase.'}; },
+      frame:function(sel,stepIndex){ return `<div class="vl-canvas"><svg viewBox="0 0 640 360"><rect x="12" y="12" width="616" height="336" rx="8" fill="#fff" stroke="#e6eef7"/><g transform="translate(60,60)"><path d="M0 200 C100 120 200 120 300 200 C380 260 460 120 540 180" stroke="#3b82f6" stroke-width="3" fill="none"/></g></svg></div>`; },
+      result:function(sel,validation){ const peaks = sel.mode==='Size exclusion'?3: sel.mode==='Affinity'?2: sel.mode==='Ion exchange'?3:2; const quality = validation.status==='correct'? 'good':'poor'; return {grade: validation.status==='correct'? 'success':'partial', peaks, quality}; },
+      interpret:function(sel,validation,outcome){ const expected='Separated peaks representing components; retention times reflect properties.'; const obs=`${outcome.peaks} peaks detected; quality ${outcome.quality}.`; const why = validation.status==='correct'? 'Appropriate mobile phase and mode.' : 'Mobile phase or mode mismatch caused poor separation.'; return {result:outcome, expected, observed:obs, interpretation:why, improvements:'Adjust mobile phase, flow rate, or column selection.'}; }
     },
+
     'microscopy':{
-      title:'Microscopy',key:'microscopy',materials:{mode:['Brightfield','Fluorescence','Confocal'],stain:['None','H&E','DAPI'],objective:['10x','40x','100x']},
-      steps:[{title:'Prepare sample',desc:'Mount and stain specimen appropriately.'},{title:'Choose objective',desc:'Select magnification and focus.'},{title:'Capture image',desc:'Acquire and interpret images.'}],
-      validate:function(sel){ if(sel.mode && sel.objective) return {status:'correct'}; return {status:'incorrect',hint:'Select imaging mode and objective lens appropriate for specimen.'}; },
-      animationSteps:function(){return this.steps.map(s=>({title:s.title,desc:s.desc}));}
+      id:'microscopy', title:'Microscopy', refs:(window.BN && window.BN.topicPages && window.BN.topicPages.microscopy && window.BN.topicPages.microscopy.refs) || [],
+      fields:[{name:'sample',label:'Sample',type:'select',options:['E. coli smear','HeLa cells stained','Tissue section H&E','Unknown sample']},{name:'mode',label:'Mode',type:'select',options:['Brightfield','Fluorescence','Confocal']},{name:'stain',label:'Stain',type:'select',options:['None','H&E','DAPI']},{name:'objective',label:'Objective',type:'select',options:['10x','40x','100x']}],
+      steps:function(){ return [{key:'prep',title:'Prepare slide',desc:'Mount sample and apply stain if needed.'},{key:'focus',title:'Focus and choose objective',desc:'Select objective and focus image.'},{key:'capture',title:'Capture image',desc:'Acquire and interpret image.'}]; },
+      validate:function(sel){ if(sel.mode && sel.objective) return {status:'correct'}; return {status:'incorrect',hint:'Choose imaging mode and objective lens.'}; },
+      frame:function(sel,stepIndex){ const stain = sel.stain||'None'; return `<div class="vl-canvas"><svg viewBox="0 0 640 360"><rect x="12" y="12" width="616" height="336" rx="8" fill="#fff" stroke="#e6eef7"/><g transform="translate(80,80)"><circle cx="240" cy="80" r="60" fill="${stain==='DAPI'?'#c7d2fe': stain==='H&E'?'#fde68a':'#ffffff'}" stroke="#cbd5e1"></circle></g></svg></div>`; },
+      result:function(sel,validation){ const clarity = sel.objective==='100x'? 'high': sel.objective==='40x'? 'moderate':'low'; const success = validation.status==='correct'; return {grade: success? 'success':'partial', clarity}; },
+      interpret:function(sel,validation,outcome){ const expected='Image showing specimen structures appropriate for stain and magnification.'; const obs=`Image clarity: ${outcome.clarity}`; const why = outcome.grade==='success'? 'Appropriate mode and objective used.' : 'Change objective or staining for better contrast.'; return {result:outcome, expected, observed:obs, interpretation:why, improvements:'Choose stain and objective suited to target structures.'}; }
     }
   };
 
-  function renderVirtualLab(){
-    const interactive = document.getElementById('interactive');
-    if(!interactive) return; // bail if structure changed
+  // helper to render gel band patterns
+  function renderGelBands(size, agarose, stepIndex){
+    // create a few bands; position depends on size; larger sizes are higher (near top)
+    const basePos = size<=200? 200: size<=2000? 140: 80;
+    const bands = [{x:20,y:basePos},{x:80,y:basePos+20},{x:140,y:basePos+8}];
+    return bands.map((b,i)=>`<rect x="${b.x}" y="${b.y - (i*6 + stepIndex*1)}" width="80" height="6" rx="2" fill="#1e293b" opacity="${0.6 + i*0.12}"></rect>`).join('');
+  }
+
+  // Render the Virtual Lab UI into the existing interactive section
+  function renderUI(){
+    const interactive = document.getElementById('interactive'); if(!interactive) return;
     const container = document.createElement('div'); container.className='virtual-lab';
     container.innerHTML = `
       <div class="wrap vl-grid">
         <div class="vl-left vl-panel">
           <h3>Choose Procedure</h3>
-          <div id="vlList" class="vl-list"></div>
+          <div id="vlList" class="vl-list" role="list"></div>
         </div>
         <div class="vl-center vl-panel">
           <h3 id="vlTitle">Select a procedure</h3>
-          <div class="vl-diagram" id="vlDiagram">Select a procedure to see the animated procedure.</div>
+          <div id="vlDiagram" class="vl-diagram" aria-live="polite">Select a procedure to begin configuration.</div>
           <div id="vlSetup" class="vl-setup" aria-live="polite"></div>
           <div class="vl-controls" id="vlPlayControls" style="margin-top:10px;display:none">
             <button class="btn" id="vlPlay">Play</button>
@@ -114,173 +194,216 @@
         </div>
       </div>
     `;
-    // replace interactive content
-    interactive.innerHTML = '';
-    interactive.appendChild(container);
+    interactive.innerHTML = ''; interactive.appendChild(container);
 
-    // populate list
-    const vlList = document.getElementById('vlList');
-    Object.values(VL.techniques).forEach(t=>{
-      const item = document.createElement('button'); item.type='button'; item.className='vl-item'; item.innerHTML = `<div><strong>${t.title}</strong><div class="muted" style="font-size:12px">${t.key}</div></div>`;
-      item.addEventListener('click', ()=> selectTechnique(t.key, item));
-      vlList.appendChild(item);
+    const list = document.getElementById('vlList');
+    Object.values(Engine.experiments).forEach(exp=>{
+      const btn = document.createElement('button'); btn.type='button'; btn.className='vl-item'; btn.setAttribute('role','listitem'); btn.innerHTML = `<div><strong>${exp.title}</strong><div class="muted" style="font-size:12px">${exp.id}</div></div>`;
+      btn.addEventListener('click', ()=> selectExperiment(exp.id, btn));
+      list.appendChild(btn);
     });
 
-    // wire controls
+    // control wiring
     document.getElementById('vlPlay').addEventListener('click', ()=> play());
     document.getElementById('vlPause').addEventListener('click', ()=> pause());
     document.getElementById('vlPrev').addEventListener('click', ()=> step(-1));
     document.getElementById('vlNext').addEventListener('click', ()=> step(1));
     document.getElementById('vlRestart').addEventListener('click', ()=> restart());
-    document.getElementById('vlSpeed').addEventListener('input', (e)=>{ VL.state.speed = Number(e.target.value); });
+    document.getElementById('vlSpeed').addEventListener('input', (e)=>{ Engine.state.speed = Number(e.target.value); });
 
     // keyboard accessibility
     container.addEventListener('keydown', (e)=>{
-      if(e.key===' ' || e.key==='Enter'){ const focused = document.activeElement; if(focused && focused.classList.contains('vl-item')) focused.click(); }
+      if((e.key===' ' || e.key==='Enter') && document.activeElement && document.activeElement.classList.contains('vl-item')){ e.preventDefault(); document.activeElement.click(); }
     });
   }
 
-  function selectTechnique(key, elButton){
-    VL.state.current = key; VL.state.selections = {}; VL.state.playIndex = 0; VL.state.playing = false;
-    // update active class
+  function selectExperiment(id, el){
+    Engine.state.current = id; Engine.state.selections = {}; Engine.state.step = 0; Engine.state.playing = false; Engine.state.onFinish = null;
     document.querySelectorAll('.vl-item').forEach(b=>b.classList.remove('active'));
-    if(elButton) elButton.classList.add('active');
-    // populate title, diagram, setup
-    const t = VL.techniques[key];
-    document.getElementById('vlTitle').textContent = t.title;
-    const diagramBox = document.getElementById('vlDiagram'); diagramBox.innerHTML = `<div style="text-align:center;max-width:360px">${renderTechniqueSVG(key)}</div>`;
-    const setup = document.getElementById('vlSetup'); setup.innerHTML = '';
-    // create inputs from materials
-    Object.entries(t.materials).forEach(([name,opts])=>{
-      const fld = document.createElement('div'); fld.className='vl-field'; fld.innerHTML = `<label>${capitalize(name)}</label>`;
-      if(Array.isArray(opts)){
-        const sel = document.createElement('select'); sel.id = 'vl-field-'+name; opts.forEach(o=>{ const optEl = document.createElement('option'); optEl.value = o; optEl.textContent = o; sel.appendChild(optEl); });
-        sel.addEventListener('change', ()=>{ VL.state.selections[name]=sel.value; validateAndRender(); });
-        fld.appendChild(sel);
+    if(el) el.classList.add('active');
+    const exp = Engine.experiments[id];
+    document.getElementById('vlTitle').textContent = exp.title;
+    document.getElementById('vlDiagram').innerHTML = exp.frame({},0);
+    renderSetupForm(exp);
+    const refs = exp.refs || [];
+    document.getElementById('vlReferences').innerHTML = `<strong>References</strong><ul>${refs.map(r=>`<li class="muted">${r}</li>`).join('')}</ul>`;
+    document.getElementById('vlPlayControls').style.display='flex';
+    validateAndUpdate();
+  }
+
+  function renderSetupForm(exp){
+    const container = document.getElementById('vlSetup'); container.innerHTML = '';
+    const form = document.createElement('form'); form.className='vl-form'; form.addEventListener('change', (e)=>{ handleFieldChange(e, exp); });
+    exp.fields.forEach(field=>{
+      const row = document.createElement('div'); row.className='vl-field';
+      const label = document.createElement('label'); label.textContent = field.label; row.appendChild(label);
+      if(field.type==='select'){
+        const sel = document.createElement('select'); sel.id = `vl-${exp.id}-${field.name}`;
+        field.options.forEach(opt=>{ const o = document.createElement('option'); o.value = opt; o.textContent = opt; sel.appendChild(o); });
+        sel.value = field.options[0];
+        row.appendChild(sel);
+      } else if(field.type==='number'){
+        const inp = document.createElement('input'); inp.type='number'; inp.id=`vl-${exp.id}-${field.name}`; if(field.min) inp.min=field.min; if(field.max) inp.max=field.max; if(field.step) inp.step=field.step; inp.value=field.default||field.min||0; row.appendChild(inp);
       }
-      // some techniques might need additional numeric inputs: for PCR annealing temp
-      if(key==='pcr' && name==='primerTm'){
-        const anneal = document.createElement('select'); anneal.id='vl-field-annealTemp'; anneal.innerHTML = '<option>50°C</option><option>55°C</option><option>58°C</option><option>60°C</option><option>62°C</option><option>65°C</option>';
-        anneal.addEventListener('change', ()=>{ VL.state.selections['annealTemp']=anneal.value; validateAndRender(); }); fld.appendChild(anneal);
-      }
-      setup.appendChild(fld);
+      form.appendChild(row);
     });
-    // show play controls
-    document.getElementById('vlPlayControls').style.display='flex';
-    // show references
-    const refBox = document.getElementById('vlReferences'); const refs = (window.BN && window.BN.topicPages && window.BN.topicPages[key] && window.BN.topicPages[key].refs) || [];
-    refBox.innerHTML = `<strong>References</strong><ul>${refs.map(r=>`<li class="muted">${r}</li>`).join('')}</ul>`;
-    validateAndRender();
+    // run button
+    const runRow = document.createElement('div'); runRow.style.marginTop='8px'; const runBtn = document.createElement('button'); runBtn.type='button'; runBtn.className='btn'; runBtn.id='vlRun'; runBtn.textContent='Run Experiment'; runBtn.addEventListener('click', ()=> startExperiment()); runRow.appendChild(runBtn); form.appendChild(runRow);
+    container.appendChild(form);
   }
 
-  function capitalize(s){ return s.replace(/[-_]/g,' ').replace(/\b\w/g,c=>c.toUpperCase()); }
-
-  function validateAndRender(){
-    const key = VL.state.current; if(!key) return;
-    const t = VL.techniques[key];
-    const selections = VL.state.selections;
-    // default set selects values for all fields present
-    Object.keys(t.materials).forEach(name=>{ if(!selections[name]){ const el = document.getElementById('vl-field-'+name); if(el) selections[name]=el.value; } });
-    // call validate
-    const result = t.validate(selections || {});
-    const valBox = document.getElementById('vlValidation'); valBox.innerHTML = '';
-    const status = document.createElement('div');
-    if(result.status==='correct'){ status.className='vl-status correct'; status.innerHTML=`✅ Correct setup.`; }
-    else if(result.status==='suboptimal'){ status.className='vl-status suboptimal'; status.innerHTML=`⚠️ Suboptimal — ${result.hint || ''}`; }
-    else { status.className='vl-status incorrect'; status.innerHTML=`❌ Incorrect — ${result.hint || 'Review selections.'}`; }
-    valBox.appendChild(status);
-    // show configured selections
-    const summary = document.createElement('div'); summary.style.marginTop='8px'; summary.innerHTML = `<strong>Selections</strong><ul>${Object.entries(selections).map(([k,v])=>`<li><strong>${capitalize(k)}</strong>: ${v}</li>`).join('')}</ul>`;
-    valBox.appendChild(summary);
-    // results placeholder
-    const resBox = document.getElementById('vlResults'); resBox.innerHTML = '';
-    // enable run only if not incorrect
-    const canRun = result.status !== 'incorrect';
-    const runBtn = document.createElement('button'); runBtn.className='btn'; runBtn.textContent='Run Experiment'; runBtn.disabled = !canRun;
-    runBtn.addEventListener('click', ()=> runExperiment(key, selections, result));
-    resBox.appendChild(runBtn);
-    if(!canRun){ const help = document.createElement('div'); help.className='muted'; help.style.marginTop='8px'; help.textContent='Fix incorrect selections before running. Hints are shown above.'; resBox.appendChild(help); }
-    // update step indicator
-    updateStepIndicator();
+  function handleFieldChange(e, exp){
+    const target = e.target; if(!target || !Engine.state.current) return;
+    const id = Engine.state.current; const prefix = `vl-${id}-`;
+    // read all fields for this experiment
+    const selections = {};
+    exp.fields.forEach(f=>{ const el = document.getElementById(prefix+f.name); if(!el) return; selections[f.name] = el.value; });
+    Engine.state.selections = selections;
+    validateAndUpdate();
   }
 
-  function runExperiment(key, selections, validateResult){
-    // start animation sequence
-    VL.state.playIndex = 0; VL.state.playing = true; VL.state.selections = selections;
-    document.getElementById('vlPlayControls').style.display='flex';
+  function validateAndUpdate(){ const id = Engine.state.current; if(!id) return; const exp = Engine.experiments[id]; const sel = Engine.state.selections || {}; const validation = exp.validate(sel);
+    // update validation box
+    const vbox = document.getElementById('vlValidation'); vbox.innerHTML = '';
+    const status = document.createElement('div'); status.className = `vl-status ${validation.status}`; status.innerHTML = `${validation.status==='correct'? '✅ Correct': validation.status==='suboptimal'? '⚠️ Suboptimal' : '❌ Incorrect'} ${validation.hint? '- ' + validation.hint : ''}`;
+    vbox.appendChild(status);
+    const summary = document.createElement('div'); summary.className='vl-summary'; summary.style.marginTop='8px'; summary.innerHTML = `<strong>Selections</strong><ul>${Object.entries(sel).map(([k,v])=>`<li><strong>${capitalize(k)}</strong>: ${v}</li>`).join('')}</ul>`;
+    vbox.appendChild(summary);
+    // enable/disable run
+    const runBtn = document.getElementById('vlRun'); if(runBtn) runBtn.disabled = validation.status==='incorrect';
+    // render diagram preview
+    const diag = document.getElementById('vlDiagram'); diag.innerHTML = exp.frame(sel, Engine.state.step || 0);
+  }
+
+  // Experiment control functions
+  let animTimer = null;
+  function startExperiment(){ const id = Engine.state.current; if(!id) return; const exp = Engine.experiments[id]; const sel = Engine.state.selections || {}; const validation = exp.validate(sel); Engine.state.step = 0; Engine.state.playing = true; Engine.state.onFinish = ()=>{ finishExperiment(id, sel, validation); };
+    document.getElementById('vlResults').innerHTML = `<div class="muted">Running ${exp.title}...</div>`;
     play();
-    // prepare result area
-    const resBox = document.getElementById('vlResults'); resBox.innerHTML = `<div class="vl-result">Running: <strong>${VL.techniques[key].title}</strong></div>`;
-    // compute expected result quickly
-    const outcome = computeOutcome(key, selections, validateResult);
-    // show result at end of animation
-    // animation runner will call finish when done
-    VL.state.onFinish = ()=>{ showFinalResult(key, selections, outcome); };
   }
+  function play(){ if(!Engine.state.current) return; Engine.state.playing = true; runLoop(); }
+  function pause(){ Engine.state.playing = false; if(animTimer) clearTimeout(animTimer); }
+  function step(dir){ const id = Engine.state.current; if(!id) return; const exp = Engine.experiments[id]; const steps = exp.steps(Engine.state.selections||{}); Engine.state.step = clamp(Engine.state.step + dir, 0, steps.length-1); renderStep(); }
+  function restart(){ Engine.state.step = 0; renderStep(); }
 
-  function computeOutcome(key, selections, validation){
-    // basic mapping: correct -> expected success; suboptimal -> partial; incorrect -> fail
-    if(validation.status==='correct') return {grade:'success',message:'Expected result achieved.'};
-    if(validation.status==='suboptimal') return {grade:'partial',message:'Suboptimal choices reduced efficiency or clarity of result.'};
-    return {grade:'fail',message:'Experiment likely failed or produced ambiguous results.'};
-  }
+  function runLoop(){ if(!Engine.state.playing) return; const id = Engine.state.current; if(!id) return; const exp = Engine.experiments[id]; const steps = exp.steps(Engine.state.selections||{});
+    renderStep(); if(Engine.state.step < steps.length -1){ animTimer = setTimeout(()=>{ Engine.state.step++; runLoop(); }, 1200 / Engine.state.speed); } else { Engine.state.playing = false; if(typeof Engine.state.onFinish === 'function') Engine.state.onFinish(); } }
 
-  function showFinalResult(key, selections, outcome){
-    const resBox = document.getElementById('vlResults');
-    const refs = (window.BN && window.BN.topicPages && window.BN.topicPages[key] && window.BN.topicPages[key].refs) || [];
-    resBox.innerHTML = `<div class="vl-result"><h4>Result — ${outcome.grade === 'success' ? 'Success' : outcome.grade === 'partial' ? 'Suboptimal' : 'Failure'}</h4><p class="muted">${outcome.message}</p><div style="margin-top:8px"><strong>Procedure summary</strong><ul>${Object.entries(selections).map(([k,v])=>`<li><strong>${capitalize(k)}</strong>: ${v}</li>`).join('')}</ul></div><div style="margin-top:8px"><strong>References</strong><ul>${refs.map(r=>`<li class="muted">${r}</li>`).join('')}</ul></div><div style="margin-top:8px"><button class="btn" id="vlRestartExp">Restart Experiment</button></div></div>`;
-    document.getElementById('vlRestartExp').addEventListener('click', ()=>{ restartExperiment(); });
-    // also call any learning feedback
-    const valBox = document.getElementById('vlValidation');
-    if(outcome.grade!=='success'){
-      const learn = document.createElement('div'); learn.style.marginTop='8px'; learn.innerHTML = `<strong>Learning note:</strong> ${outcome.grade==='partial' ? 'Some choices reduced the clarity or efficiency of the result — review hints and try again.' : 'Review your reagent choices, volumes, and conditions. Check controls and repeat with corrected setup.'}`;
-      valBox.appendChild(learn);
+  function renderStep(){ const id = Engine.state.current; if(!id) return; const exp = Engine.experiments[id]; const sel = Engine.state.selections || {}; const stepIndex = Engine.state.step; const steps = exp.steps(sel); const step = steps[stepIndex]; document.getElementById('vlDiagram').innerHTML = exp.frame(sel, stepIndex); document.getElementById('vlStepIndicator').textContent = `Step ${stepIndex+1} of ${steps.length} — ${step.title}`; }
+
+  function finishExperiment(id, sel, validation){
+    const exp = Engine.experiments[id];
+    const outcome = exp.result(sel, validation);
+    const interp = exp.interpret(sel, validation, outcome);
+    const resultsBox = document.getElementById('vlResults');
+
+    // determine sample identity if unknown
+    let revealedSample = null;
+    if(sel && sel.sample && sel.sample.toLowerCase().includes('unknown')){
+      // choose a plausible hidden sample from the experiment's sample options
+      const sampleField = (exp.fields || []).find(f=>f.name==='sample');
+      const pool = (sampleField && sampleField.options)||[];
+      const candidates = pool.filter(s => !/unknown|positive|negative/i.test(s));
+      revealedSample = candidates.length? candidates[Math.floor(Math.random()*candidates.length)] : 'Unknown';
     }
+
+    // Visual result area generated per experiment type
+    let visualHtml = '<div class="muted">No visual available for this technique.</div>';
+    try{
+      if(id==='pcr') visualHtml = renderPCRResult(exp, sel, validation, outcome, revealedSample);
+      else if(id==='gel-electrophoresis') visualHtml = renderGelResult(exp, sel, validation, outcome, revealedSample);
+      else if(id==='spectrophotometry') visualHtml = renderSpectrumResult(exp, sel, validation, outcome, revealedSample);
+      else if(id==='elisa') visualHtml = renderELISAResult(exp, sel, validation, outcome, revealedSample);
+      else if(id==='western-blot') visualHtml = renderWesternResult(exp, sel, validation, outcome, revealedSample);
+      else if(id==='chromatography') visualHtml = renderChromatogramResult(exp, sel, validation, outcome, revealedSample);
+      else if(id==='microscopy') visualHtml = renderMicroscopyResult(exp, sel, validation, outcome, revealedSample);
+    } catch(err){ visualHtml = `<div class="muted">Visualization error: ${err.message}</div>`; }
+
+    resultsBox.innerHTML = `
+      <div>
+        <h4>Result — ${interp.result.grade.toUpperCase()}</h4>
+        <div class="vl-visual">${visualHtml}</div>
+        <p class="muted"><strong>Expected:</strong> ${interp.expected}</p>
+        <p class="muted"><strong>Observed:</strong> ${interp.observed}</p>
+        <p class="muted"><strong>Interpretation:</strong> ${interp.interpretation}</p>
+        <p style="margin-top:8px"><strong>Recommendations:</strong> ${interp.improvements}</p>
+        <div style="margin-top:8px"><button class="btn" id="vlRestartExp">Restart Experiment</button> <button class="btn secondary" id="vlTryAgain">Try Again</button>` + (revealedSample? ` <button class="btn" id="vlReveal">Reveal Sample</button>` : '') + `</div>
+      </div>`;
+
+    document.getElementById('vlRestartExp').addEventListener('click', ()=>{ Engine.state.step=0; Engine.state.playing=false; validateAndUpdate(); document.getElementById('vlResults').innerHTML='No results yet.'; });
+    document.getElementById('vlTryAgain').addEventListener('click', ()=>{ Engine.state.step=0; Engine.state.playing=false; validateAndUpdate(); startExperiment(); });
+    if(revealedSample){ document.getElementById('vlReveal').addEventListener('click', ()=>{ alert('Actual sample: ' + revealedSample); }); }
   }
 
-  function restartExperiment(){
-    VL.state.playIndex = 0; VL.state.playing = false; VL.state.onFinish = null; validateAndRender();
-    document.getElementById('vlDiagram').innerHTML = `<div style="text-align:center;max-width:360px">${renderTechniqueSVG(VL.state.current)}</div>`;
+  // -- Visualization renderers --
+  function renderPCRResult(exp, sel, validation, outcome, revealed){
+    // amplification curve: y-scale by outcome.yield
+    const yieldVal = outcome.yield || 0;
+    const maxY = Math.max(200, yieldVal*1.2);
+    const points = [];
+    const cycles = Number(sel.cycles||30);
+    for(let i=0;i<=cycles;i+=Math.ceil(cycles/10)){
+      const x = Math.round((i/cycles)*300);
+      // simulate exponential-looking curve depending on yield
+      const noise = 1 + (Math.random()*0.08);
+      const y = Math.round((1 - Math.exp(-i/(cycles/6))) * (yieldVal/maxY) * 120 * noise);
+      points.push([x,120 - y]);
+    }
+    const path = points.map((p,i)=>`${i===0?'M':'L'} ${40 + p[0]} ${40 + p[1]}`).join(' ');
+    // endpoint gel from outcome.bands
+    const bandsHtml = (outcome.bands || []).map((b,i)=>`<rect x="${40 + i*80}" y="${220 - (i*20)}" width="40" height="8" rx="2" fill="#0f172a" opacity="${b.intensity||0.6}"></rect>`).join('');
+    return `<div><svg viewBox="0 0 520 280" width="100%"><rect x="0" y="0" width="520" height="280" fill="#fff"/><g transform="translate(20,20)"><text x="0" y="12" fill="#0f172a">Amplification curve</text><path d="${path}" stroke="#059669" stroke-width="3" fill="none" stroke-linejoin="round" stroke-linecap="round"></path><g transform="translate(0,140)"><text x="0" y="0" fill="#64748b" font-size="12">Endpoint gel</text><rect x="0" y="8" width="480" height="80" rx="4" fill="#f8fafc" stroke="#e6eef7"></rect>${bandsHtml}</g></g></svg><div style="margin-top:8px"><strong>Yield:</strong> ${yieldVal} (relative units)</div>${revealed?`<div style="margin-top:4px" class="muted">Hidden sample likely: ${revealed}</div>`:''}</div>`;
   }
 
-  // animation controls: very lightweight simulated step progression
-  let animationTimer = null;
-  function play(){ if(!VL.state.current) return; VL.state.playing=true; runAnimationLoop(); }
-  function pause(){ VL.state.playing=false; if(animationTimer) clearTimeout(animationTimer); }
-  function step(dir){ const t = VL.techniques[VL.state.current]; if(!t) return; VL.state.playIndex = Math.max(0, Math.min(t.animationSteps().length-1, VL.state.playIndex + dir)); renderAnimationFrame(); }
-  function restart(){ VL.state.playIndex = 0; renderAnimationFrame(); }
-  function runAnimationLoop(){ if(!VL.state.playing) return; const t = VL.techniques[VL.state.current]; if(!t) return; const steps = t.animationSteps(); renderAnimationFrame(); if(VL.state.playIndex < steps.length - 1){ animationTimer = setTimeout(()=>{ VL.state.playIndex++; runAnimationLoop(); }, 1200 / VL.state.speed); } else { // finished
-      VL.state.playing = false; if(typeof VL.state.onFinish === 'function') VL.state.onFinish(); }
-  }
-  function renderAnimationFrame(){ const key = VL.state.current; const t = VL.techniques[key]; if(!t) return; const steps = t.animationSteps(); const idx = VL.state.playIndex; document.getElementById('vlDiagram').classList.add('pulse'); setTimeout(()=>document.getElementById('vlDiagram').classList.remove('pulse'), 600);
-    document.getElementById('vlDiagram').innerHTML = `<div style="text-align:left;max-width:520px"><h4>Step ${idx+1} of ${steps.length} — ${steps[idx].title}</h4><p class="muted">${steps[idx].desc}</p><div style="height:8px"></div>${renderTechniqueSVG(key, idx)}</div>`;
-    updateStepIndicator();
-  }
-  function updateStepIndicator(){ const t = VL.techniques[VL.state.current]; if(!t) return; const total = t.animationSteps().length; const idx = VL.state.playIndex; document.getElementById('vlStepIndicator').textContent = `Step ${idx+1} of ${total}`; }
-
-  function renderTechniqueSVG(key, stepIndex=0){ // lightweight SVG placeholders leveraging existing styles in bionexus.js where possible
-    // Use different SVG shells per technique; do not fabricate details but provide realistic visuals
-    if(key==='pcr') return `<svg viewBox="0 0 520 220" width="100%"><rect x="40" y="36" width="120" height="148" rx="12" fill="#fff" stroke="#cbd5e1"></rect><rect x="200" y="36" width="120" height="148" rx="12" fill="#fff" stroke="#cbd5e1"></rect><rect x="360" y="36" width="120" height="148" rx="12" fill="#fff" stroke="#cbd5e1"></rect><text x="72" y="24" fill="#64748b">Denaturation</text><text x="232" y="24" fill="#64748b">Annealing</text><text x="392" y="24" fill="#64748b">Extension</text><circle cx="100" cy="120" r="8" fill="#14b8a6" ${stepIndex===0? 'opacity="1"' : 'opacity="0.18"'}></circle><circle cx="260" cy="120" r="8" fill="#3b82f6" ${stepIndex===1? 'opacity="1"' : 'opacity="0.18"'}></circle><circle cx="420" cy="120" r="8" fill="#06b6d4" ${stepIndex===2? 'opacity="1"' : 'opacity="0.18"'}></circle></svg>`;
-    if(key==='gel-electrophoresis') return `<svg viewBox="0 0 520 220"><rect x="80" y="36" width="360" height="148" rx="8" fill="#f8fafc" stroke="#e6f6ff"></rect>${[110,164,218,272,326,380].map((x,i)=>`<rect x="${x}" y="64" width="28" height="120" rx="6" fill="#e6f6ff"></rect><path d="M${x+10} ${120 - (i+ (stepIndex*4))}" stroke="#3b82f6" stroke-width="8" stroke-linecap="round"></path>`).join('')}</svg>`;
-    if(key==='elisa') return `<svg viewBox="0 0 520 220"><rect x="90" y="60" width="110" height="100" rx="10" fill="#fff" stroke="#cbd5e1"></rect><rect x="220" y="60" width="110" height="100" rx="10" fill="#fff" stroke="#cbd5e1"></rect><rect x="350" y="60" width="80" height="100" rx="10" fill="#fff" stroke="#cbd5e1"></rect><text x="120" y="40" fill="#64748b">Capture</text><text x="250" y="40" fill="#64748b">Detection</text><text x="380" y="40" fill="#64748b">Signal</text></svg>`;
-    if(key==='western-blot') return `<svg viewBox="0 0 520 220"><rect x="150" y="40" width="220" height="140" rx="8" fill="#fff" stroke="#cbd5e1"></rect><path d="M180 90h160" stroke="#3b82f6" stroke-width="12" stroke-linecap="round"></path><path d="M180 122h120" stroke="#14b8a6" stroke-width="12" stroke-linecap="round"></path></svg>`;
-    if(key==='spectrophotometry') return `<svg viewBox="0 0 520 220"><rect x="80" y="60" width="120" height="100" rx="10" fill="#fff" stroke="#cbd5e1"></rect><rect x="220" y="60" width="100" height="100" rx="6" fill="#fff" stroke="#cbd5e1"></rect><path d="M340 160c20-40 40-60 80-40" stroke="#3b82f6" stroke-width="3" fill="none"></path><text x="100" y="48" fill="#64748b">Cuvette</text><text x="240" y="48" fill="#64748b">Detector</text></svg>`;
-    if(key==='chromatography') return `<svg viewBox="0 0 520 220"><rect x="120" y="48" width="80" height="140" rx="10" fill="#fff" stroke="#cbd5e1"></rect><rect x="220" y="48" width="180" height="140" rx="10" fill="#fff" stroke="#cbd5e1"></rect><path d="M120 160c80-20 130-40 260-40" stroke="#06b6d4" stroke-width="4" fill="none"></path></svg>`;
-    if(key==='microscopy') return `<svg viewBox="0 0 520 220"><rect x="80" y="40" width="140" height="140" rx="12" fill="#fff" stroke="#cbd5e1"></rect><rect x="260" y="40" width="160" height="140" rx="12" fill="#fff" stroke="#cbd5e1"></rect><circle cx="330" cy="110" r="30" stroke="#3b82f6" stroke-width="4" fill="#fff"></circle><text x="100" y="32" fill="#64748b">Stage</text><text x="320" y="32" fill="#64748b">Objective</text></svg>`;
-    return `<div class="muted">Visualization not available</div>`;
+  function renderGelResult(exp, sel, validation, outcome, revealed){
+    // create gel lanes and band positions based on sample selection
+    const sizeMap = {'PCR product 100 bp':100,'PCR product 1,000 bp':1000,'Genomic digest 5,000 bp':5000,'Positive control':100,'Negative control':0};
+    const size = sizeMap[sel.sample] || 300;
+    const laneBands = [{pos: mapSizeToY(size), intensity: validation.status==='correct'?0.95: validation.status==='suboptimal'?0.6:0.25}];
+    const ladderHtml = sel.ladder==='Present'? Array.from({length:6}).map((_,i)=>`<rect x="${10}" y="${20 + i*18}" width="8" height="6" fill="#94a3b8"></rect>`).join('') : '';
+    const bandsHtml = laneBands.map((b,i)=>`<rect x="${80}" y="${b.pos}" width="220" height="8" rx="2" fill="#0f172a" opacity="${b.intensity}"></rect>`).join('');
+    function mapSizeToY(sz){ if(sz<=200) return 32; if(sz<=2000) return 72; return 112; }
+    return `<div><svg viewBox="0 0 420 200" width="100%"><rect x="0" y="0" width="420" height="200" fill="#fff"/><g transform="translate(20,20)"><text x="0" y="12" fill="#0f172a">Simulated Gel</text><rect x="40" y="24" width="280" height="120" rx="6" fill="#f8fafc" stroke="#e6eef7"></rect>${ladderHtml}${bandsHtml}</g></svg>${revealed?`<div class="muted">Hidden sample guessed: ${revealed}</div>`:''}</div>`;
   }
 
-  // Initialization
-  whenPageReady(()=>{
-    // only run on virtual-lab page
-    const page = (window.location.pathname.split('/').pop() || '').replace(/\.html$/,'');
-    if(page !== 'virtual-lab') return;
-    renderVirtualLab();
-    // keyboard: space toggles play/pause
-    window.addEventListener('keydown',(e)=>{
-      if(e.code==='Space' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA'){
-        e.preventDefault(); const btn = VL.state.playing ? document.getElementById('vlPause') : document.getElementById('vlPlay'); btn && btn.click();
-      }
-    });
+  function renderSpectrumResult(exp, sel, validation, outcome, revealed){
+    const value = outcome.value || 0;
+    // simple bar gauge
+    const h = Math.min(180, 10 + value*3);
+    return `<div style="display:flex;align-items:center"><svg viewBox="0 0 200 120" width="200"><rect x="0" y="0" width="200" height="120" fill="#fff"/><rect x="40" y="20" width="40" height="${h}" y="${100 - h}" rx="4" fill="#2563eb"></rect><text x="90" y="60" fill="#0f172a">Abs: ${value}</text></svg><div style="margin-left:12px"><strong>Wavelength:</strong> ${sel.wavelength} nm<br><strong>Dilution:</strong> ${sel.dilution}</div></div>${revealed?`<div class="muted">Hidden sample: ${revealed}</div>`:''}`;
+  }
+
+  function renderELISAResult(exp, sel, validation, outcome, revealed){
+    // show 4 wells: sample, positive, negative, blank
+    const signal = outcome.signal || 0;
+    const intensity = Math.min(1, Math.max(0, signal/120));
+    const color = `rgba(220, 38, 38, ${intensity})`;
+    return `<div><svg viewBox="0 0 320 120" width="100%"><g transform="translate(20,20)"><text x="0" y="12" fill="#0f172a">ELISA plate (sample, +ctrl, -ctrl, blank)</text>${[0,1,2,3].map((i)=>`<circle cx="${30 + i*70}" cy="60" r="18" fill="${i===0? color : i===1? 'rgba(220,38,38,0.9)': i===2? 'rgba(120,120,120,0.3)': 'rgba(200,200,200,0.15)'}" stroke="#cbd5e1"></circle>`).join('')}</g></svg><div style="margin-top:6px"><strong>Absorbance:</strong> ${signal}</div>${revealed?`<div class="muted">Hidden sample: ${revealed}</div>`:''}</div>`;
+  }
+
+  function renderWesternResult(exp, sel, validation, outcome, revealed){
+    // membrane with 4 lanes
+    const lanes = 4;
+    const bandHtml = outcome.result && outcome.result.bands? '<rect x="60" y="60" width="16" height="12" fill="#0f172a"></rect>': (outcome.grade==='partial'? '<rect x="60" y="80" width="16" height="8" fill="#0f172a" opacity="0.6"></rect>': '');
+    return `<div><svg viewBox="0 0 320 200" width="100%"><rect x="10" y="10" width="300" height="180" rx="6" fill="#f8fafc" stroke="#e6eef7"/><g transform="translate(40,30)">${Array.from({length:lanes}).map((_,i)=>`<rect x="${i*48}" y="0" width="28" height="140" rx="2" fill="#fff" stroke="#e6eef7"></rect>`).join('')}${bandHtml}</g></svg>${revealed?`<div class="muted">Hidden sample: ${revealed}</div>`:''}</div>`;
+  }
+
+  function renderChromatogramResult(exp, sel, validation, outcome, revealed){
+    const peaks = outcome.peaks || 2;
+    const peaksHtml = Array.from({length:peaks}).map((_,i)=>`<path d="M ${20 + i*60} 120 C ${20 + i*60} ${80 - i*8} ${40 + i*60} ${40} ${60 + i*60} 120" stroke="#0ea5a3" stroke-width="3" fill="none"></path>`).join('');
+    return `<div><svg viewBox="0 0 420 160" width="100%"><rect x="0" y="0" width="420" height="160" fill="#fff"/><g transform="translate(10,0)">${peaksHtml}</g></svg>${revealed?`<div class="muted">Hidden sample: ${revealed}</div>`:''}</div>`;
+  }
+
+  function renderMicroscopyResult(exp, sel, validation, outcome, revealed){
+    const clarity = outcome.clarity || 'moderate';
+    const color = clarity==='high'? '#334155' : clarity==='moderate'? '#64748b' : '#cbd5e1';
+    return `<div><svg viewBox="0 0 320 200" width="100%"><rect x="0" y="0" width="320" height="200" fill="#fff"/><g transform="translate(50,20)"><circle cx="120" cy="80" r="60" fill="${color}" stroke="#0f172a"/></g></svg><div style="margin-top:6px"><strong>Clarity:</strong> ${clarity}</div>${revealed?`<div class="muted">Hidden sample: ${revealed}</div>`:''}</div>`;
+  }
+
+  // Initialize on virtual-lab page
+  whenPageReady(()=>{ const page = (window.location.pathname.split('/').pop() || '').replace(/\.html$/,''); if(page !== 'virtual-lab') return; renderUI(); // auto-select first
+    const first = document.querySelector('.vl-item'); if(first) first.click(); // keyboard space toggles play/pause
+    window.addEventListener('keydown',(e)=>{ if(e.code==='Space' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA'){ e.preventDefault(); if(Engine.state.playing) pause(); else play(); } });
   });
+
 })();
