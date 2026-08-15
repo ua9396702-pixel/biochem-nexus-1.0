@@ -42,16 +42,50 @@
         return {status:'incorrect',hint:'Annealing temperature poorly matched to primer Tm; expect non-specific bands or low yield.'};
       },
       // animation frame generator: returns SVG for each step reflecting selections
-      frame:function(sel,stepIndex){ const steps = this.steps(sel); const step = steps[stepIndex] || steps[steps.length-1];
-        // show tubes and labels reflecting sample and polymerase. animate liquid height to simulate addition
+      frame:function(sel,stepIndex){
+        const steps = this.steps(sel);
+        const step = steps[stepIndex] || steps[steps.length-1];
         const sampleLabel = (sel.sample||'Sample').replace('(low copy)','').replace('(high copy)','').trim();
         const enzyme = sel.polymerase || '';
         const cycleText = `Cycles: ${sel.cycles||30}`;
-        return `<div class="vl-canvas"><svg viewBox="0 0 640 360" role="img" aria-label="PCR simulation"><rect x="12" y="12" width="616" height="336" rx="8" fill="#ffffff" stroke="#e6eef7"/><g transform="translate(40,60)">`+
-          // tubes
-          `<g id="tubes">${[0,1,2].map((i)=>`<g transform="translate(${i*140},0)"><rect x="0" y="0" width="64" height="160" rx="8" fill="#f8fafc" stroke="#cbd5e1"></rect><rect x="8" y="80" width="48" height="64" rx="6" fill="${i===0? '#dbeafe':'#e6fffa'}" stroke="#cbd5e1"></rect><text x="0" y="-8" fill="#64748b" font-size="12">${i===0?sampleLabel:i===1?enzyme:'Master mix'}</text></g>`).join('')}</g>`+
-          `<g transform="translate(480,24)"><text x="0" y="0" fill="#0f172a" font-size="14" font-weight="600">${step.title}</text><text x="0" y="20" fill="#64748b" font-size="12">${step.desc}</text><text x="0" y="44" fill="#64748b" font-size="12">${cycleText}</text></g>`+
-        `</g></svg></div>`; },
+        // stepIndex mapping: 0=prep (pipette),1=load (move tubes),2=cycles (thermocycler active),3=detect (show gel icon)
+        const pipetteClass = stepIndex===0? 'pipette animate' : 'pipette';
+        const tubeY = stepIndex===1? 40 : 0; // move tube down to indicate loading
+        const cyclerActive = stepIndex===2 ? true : false;
+        const thermColor = cyclerActive? '#fde68a' : '#e6eefc';
+        return `
+          <div class="vl-canvas vl-scene" role="img" aria-label="PCR bench and thermal cycler">
+            <svg viewBox="0 0 720 360" width="100%">
+              <defs>
+                <linearGradient id="glass" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.9"/><stop offset="1" stop-color="#e6eef7" stop-opacity="0.9"/></linearGradient>
+              </defs>
+              <rect x="0" y="0" width="720" height="360" fill="#ffffff"/>
+              <!-- lab bench -->
+              <g class="lab-bench" transform="translate(20,200)">
+                <rect x="0" y="0" width="680" height="140" rx="8" fill="url(#glass)" stroke="#e6eef7"></rect>
+              </g>
+              <!-- tube rack -->
+              <g transform="translate(60,120)">
+                <rect x="0" y="0" width="220" height="100" rx="6" fill="#f3f4f6" stroke="#e6eef7"></rect>
+                ${[0,1,2,3].map((i)=>`<g class="tube" transform="translate(${12 + i*52},${10 + tubeY})"><rect x="0" y="0" width="32" height="72" rx="6" fill="#ffffff" stroke="#cbd5e1"></rect><rect class="tube-liquid" x="6" y="${42}" width="20" height="${18}" rx="3" fill="#dbeafe"></rect><text x="0" y="88" font-size="10" fill="#475569">${i===0? sampleLabel : i===1? enzyme : 'Mix'}</text></g>`).join('')}
+              </g>
+              <!-- pipette (animated during prep) -->
+              <g transform="translate(360,80)"><g class="${pipetteClass}" >
+                <rect x="0" y="0" width="10" height="80" rx="4" fill="#111827"></rect>
+                <rect x="-6" y="-8" width="22" height="8" rx="3" fill="#94a3b8"></rect>
+              </g></g>
+              <!-- thermal cycler -->
+              <g transform="translate(520,80)">
+                <rect x="0" y="0" width="160" height="120" rx="8" fill="${thermColor}" stroke="#c7d2fe"></rect>
+                <rect x="18" y="18" width="124" height="68" rx="6" fill="#f8fafc" stroke="#e6eef7"></rect>
+                <text x="8" y="105" font-size="12" fill="#0f172a">Thermal Cycler</text>
+                <text x="8" y="120" font-size="10" fill="#64748b">${cycleText}</text>
+              </g>
+              <!-- step label -->
+              <g transform="translate(40,24)"><text x="0" y="0" font-size="14" fill="#0f172a">${step.title}</text><text x="0" y="18" font-size="12" fill="#64748b">${step.desc}</text></g>
+            </svg>
+          </div>`;
+      },
       result:function(sel,validation){
         // simple quantitative model: base yield depends on sample copy number and validation
         const copy = (sel.sample||'').includes('high')? 1000 : (sel.sample||'').includes('low')? 10 : 100;
@@ -91,13 +125,33 @@
         {key:'run',title:'Run gel',desc:`Run at ${sel.voltage||100} V until separation visible.`},
         {key:'stain',title:'Stain & image',desc:'Stain the gel and visualize bands under UV.'}
       ]; },
-      validate:function(sel){ if(!sel.sampleType || !sel.agarose) return {status:'incorrect',hint:'Select sample and agarose percentage.'}; const ideal = sel.sampleType.includes('100')? '2.0%' : sel.sampleType.includes('1,000')? '1.0%' : '0.8%'; if(sel.agarose===ideal && sel.ladder==='Present') return {status:'correct'}; if(sel.agarose===ideal) return {status:'suboptimal',hint:'Add ladder for size comparison.'}; return {status:'incorrect',hint:'Gel percentage mismatched to fragment size; expect poor resolution.'}; },
-      frame:function(sel,stepIndex){ const wells = 6; const sampleIndex = 2; const frag = sel.sampleType||''; const size = frag.includes('100')?100: frag.includes('1,000')?1000:5000; // simple
-        // generate bands based on sample and agarose
-        return `<div class="vl-canvas"><svg viewBox="0 0 640 360"><rect x="12" y="12" width="616" height="336" rx="8" fill="#fff" stroke="#e6eef7"/><g transform="translate(40,40)"><rect x="0" y="0" width="520" height="260" rx="6" fill="#f8fafc" stroke="#e6f6ff"/></g><g transform="translate(80,70)">`+
-          Array.from({length:wells}).map((_,i)=>`<g transform="translate(${i*60},0)"><rect x="0" y="0" width="36" height="26" rx="4" fill="#e6f6ff"></rect></g>`).join('')+
-          `<g transform="translate(0,120)">${renderGelBands(size, sel.agarose, stepIndex)}</g></svg></div>`; },
-      result:function(sel,validation){ const size = sel.sampleType && sel.sampleType.includes('100')?100: sel.sampleType && sel.sampleType.includes('1,000')?1000:5000; const resolutionOk = (sel.agarose==='2.0%' && size<=200) || (sel.agarose==='1.0%' && size<=2000) || (sel.agarose==='0.8%' && size>2000); const success = validation.status==='correct' && resolutionOk; return {grade: success? 'success': (validation.status==='suboptimal' ? 'partial' : 'fail'), size, resolutionOk}; },
+      validate:function(sel){ if(!sel.sample || !sel.agarose) return {status:'incorrect',hint:'Select sample and agarose percentage.'}; const ideal = sel.sample.includes('100')? '2.0%' : sel.sample.includes('1,000')? '1.0%' : '0.8%'; if(sel.agarose===ideal && sel.ladder==='Present') return {status:'correct'}; if(sel.agarose===ideal) return {status:'suboptimal',hint:'Add ladder for size comparison.'}; return {status:'incorrect',hint:'Gel percentage mismatched to fragment size; expect poor resolution.'}; },
+      frame:function(sel,stepIndex){
+        const wells = 6; const frag = sel.sample || ''; const size = frag.includes('100')?100: frag.includes('1,000')?1000:frag.includes('5,000')?5000:300;
+        const loading = stepIndex===1; const running = stepIndex===2; const staining = stepIndex===3;
+        // build wells and pipette; animate migration by shifting band positions when running
+        const bandOffset = running? (stepIndex===2? 40 : 0) : 0;
+        return `
+          <div class="vl-canvas vl-scene" role="img" aria-label="Gel electrophoresis setup">
+            <svg viewBox="0 0 720 360" width="100%">
+              <rect x="0" y="0" width="720" height="360" fill="#fff"/>
+              <!-- gel tank -->
+              <g transform="translate(60,60)">
+                <rect x="0" y="0" width="420" height="220" rx="8" fill="#f8fafc" stroke="#e6eef7"></rect>
+                <text x="8" y="-6" font-size="13" fill="#0f172a">Gel tank</text>
+                <!-- wells -->
+                ${Array.from({length:wells}).map((_,i)=>`<g transform="translate(${20 + i*60},16)"><rect x="0" y="0" width="36" height="18" rx="3" fill="#e6f6ff"></rect></g>`).join('')}
+                <!-- sample band (will move when running) -->
+                <g transform="translate(0,40)">${renderGelBands(size, sel.agarose, running? 6: stepIndex)}</g>
+              </g>
+              <!-- pipette for loading -->
+              <g transform="translate(520,120)"><g class="pipette ${loading? 'animate':''}"><rect x="0" y="0" width="10" height="80" rx="4" fill="#111827"></rect></g></g>
+              <!-- label -->
+              <g transform="translate(60,28)"><text x="0" y="0" font-size="14" fill="#0f172a">${this.steps(sel)[stepIndex].title}</text><text x="0" y="18" font-size="12" fill="#64748b">${this.steps(sel)[stepIndex].desc}</text></g>
+            </svg>
+          </div>`;
+      },
+      result:function(sel,validation){ const size = sel.sample && sel.sample.includes('100')?100: sel.sample && sel.sample.includes('1,000')?1000:5000; const resolutionOk = (sel.agarose==='2.0%' && size<=200) || (sel.agarose==='1.0%' && size<=2000) || (sel.agarose==='0.8%' && size>2000); const success = validation.status==='correct' && resolutionOk; return {grade: success? 'success': (validation.status==='suboptimal' ? 'partial' : 'fail'), size, resolutionOk}; },
       interpret:function(sel,validation,outcome){ const expected = `Bands at expected positions according to fragment size.`; let obs=''; if(outcome.grade==='success') obs='Clear discrete bands at expected migration distances.'; else if(outcome.grade==='partial') obs='Bands visible but ladder missing or faint; sizing approximate.'; else obs='Smearing or no clear bands; poor separation or loading error.'; const why = outcome.grade==='success'? 'Gel % and ladder appropriate.' : outcome.grade==='partial'? 'Missing ladder reduces sizing confidence.' : 'Wrong gel %, high voltage or degraded sample.'; return {result:outcome, expected, observed:obs, interpretation:why, improvements:'Use appropriate gel %, include ladder, reduce voltage or improve loading technique.'}; }
     },
 
@@ -106,7 +160,45 @@
       fields:[{name:'sample',label:'Sample',type:'select',options:['Nucleic acid solution (DNA)','Protein assay solution','Blank only','Unknown sample']},{name:'wavelength',label:'Wavelength (nm)',type:'select',options:['260','280','595']},{name:'blank',label:'Blank',type:'select',options:['Solvent blank','No blank']},{name:'dilution',label:'Dilution',type:'select',options:['1','1:10','1:100']}],
       steps:function(){ return [{key:'blank',title:'Blank the instrument',desc:'Place blank and zero the absorbance.'},{key:'measure',title:'Measure sample',desc:'Place cuvette and record absorbance.'},{key:'calc',title:'Calculate concentration',desc:'Apply Beer-Lambert or standard curve.'}]; },
       validate:function(sel){ if(sel.blank==='Solvent blank') return {status:'correct'}; return {status:'suboptimal',hint:'Blanking improves accuracy; without blank expect background.'}; },
-      frame:function(sel,stepIndex){ const w = sel.wavelength||260; const val = sel.dilution==='1:100'?0.15: sel.dilution==='1:10'?0.95: 1.8; const a = (val * (w===260?0.9: w===280?0.8:0.65)).toFixed(2); return `<div class="vl-canvas"><svg viewBox="0 0 640 360"><rect x="12" y="12" width="616" height="336" rx="8" fill="#fff" stroke="#e6eef7"/><g transform="translate(60,60)"><rect x="0" y="0" width="220" height="160" rx="8" fill="#fff" stroke="#cbd5e1"></rect><text x="10" y="-8" fill="#64748b">Spectrophotometer</text><text x="10" y="36" fill="#0f172a">Wavelength: ${w} nm</text><text x="10" y="60" fill="#0f172a">Abs: ${a}</text></g></svg></div>`; },
+      frame:function(sel,stepIndex){
+        const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const w = sel.wavelength||260;
+        const dilution = sel.dilution||'1';
+        const base = dilution==='1:100'?0.15: dilution==='1:10'?0.95: 1.8;
+        const absVal = (base * (w==260?0.9: w==280?0.8:0.65)).toFixed(2);
+        const step = this.steps()[stepIndex] ? this.steps()[stepIndex].title : 'Measure sample';
+        const beamOpacity = reduced?0.6:0.95;
+        const cuvetteFill = `rgba(59,130,246,${Math.min(0.95, 0.2 + Number(absVal)/3)})`;
+        return `
+          <div class="vl-canvas vl-scene" role="img" aria-label="Spectrophotometer scene">
+            <svg viewBox="0 0 720 360" width="100%">
+              <rect x="0" y="0" width="720" height="360" fill="#fff"/>
+              <g transform="translate(60,60)">
+                <rect x="0" y="0" width="360" height="220" rx="10" fill="#f8fafc" stroke="#e6eef7"></rect>
+                <rect x="28" y="32" width="120" height="120" rx="6" fill="#fff" stroke="#cbd5e1"></rect>
+                <text x="160" y="24" font-size="14" fill="#0f172a">Spectrophotometer</text>
+                <text x="160" y="44" font-size="12" fill="#64748b">Mode: ${sel.blank||'Blanking'}</text>
+                <text x="160" y="60" font-size="12" fill="#64748b">Wavelength: ${w} nm</text>
+                <text x="160" y="76" font-size="12" fill="#64748b">Dilution: ${dilution}</text>
+                <g transform="translate(36,40)">
+                  <rect x="8" y="8" width="84" height="96" rx="6" fill="#f1f5f9" stroke="#e6eef7"></rect>
+                  <g transform="translate(20,20)"><rect x="0" y="0" width="44" height="72" rx="6" fill="${cuvetteFill}" stroke="#cbd5e1"></rect></g>
+                </g>
+                <g transform="translate(180,80)">
+                  <rect x="0" y="28" width="120" height="12" fill="rgba(99,102,241,0.06)"/>
+                  <rect x="0" y="24" width="120" height="4" fill="rgba(99,102,241,${beamOpacity})"></rect>
+                  <circle cx="140" cy="30" r="18" fill="#eef2ff" stroke="#c7d2fe"></circle>
+                  <text x="170" y="36" font-size="12" fill="#0f172a">Detector</text>
+                </g>
+                <g transform="translate(360,24)">
+                  <rect x="0" y="0" width="160" height="56" rx="6" fill="#fff" stroke="#e6eef7"></rect>
+                  <text x="12" y="20" font-size="12" fill="#0f172a">${step}</text>
+                  <text x="12" y="40" font-size="18" font-weight="600" fill="#0f172a">Abs: ${absVal}</text>
+                </g>
+              </g>
+            </svg>
+          </div>`;
+      },
       result:function(sel,validation){ const base = sel.wavelength==='260'?50: sel.wavelength==='280'?40: 10; const dilution = sel.dilution==='1:100'?0.01: sel.dilution==='1:10'?0.1:1; const value = Math.round(base * dilution * (validation.status==='correct'?1:0.6)); return {grade: validation.status==='correct'? 'success':'partial', value}; },
       interpret:function(sel,validation,outcome){ const expected='Absorbance proportional to concentration within linear range.'; const obs=`Measured value ${outcome.value} (arbitrary units).`; const why = validation.status==='correct'? 'Blanking and correct dilution used.' : 'No blank or poor dilution can bias result.'; return {result:outcome, expected, observed:obs, interpretation:why, improvements:'Use proper blank and adjust dilution to stay within linear range.'}; }
     },
@@ -116,7 +208,33 @@
       fields:[{name:'sample',label:'Sample',type:'select',options:['Patient serum (positive)','Patient serum (negative)','Positive control','Negative control','Unknown sample']},{name:'format',label:'Format',type:'select',options:['Sandwich','Indirect','Direct']},{name:'controls',label:'Controls',type:'select',options:['Positive and negative','Only negative','None']},{name:'wash',label:'Wash steps',type:'select',options:['3 washes','1 wash','No wash']},{name:'incubation',label:'Incubation',type:'select',options:['Room temp 1h','37°C 30min']}],
       steps:function(){ return [{key:'coat',title:'Coating',desc:'Capture antibody binds to plate.'},{key:'block',title:'Blocking',desc:'Block to reduce background.'},{key:'detect',title:'Detection',desc:'Add detection antibody and substrate.'},{key:'read',title:'Read',desc:'Measure absorbance.'}]; },
       validate:function(sel){ if(sel.controls && sel.controls.includes('Positive') && sel.wash==='3 washes') return {status:'correct'}; if(sel.wash!=='3 washes') return {status:'suboptimal',hint:'Insufficient washes increase background.'}; return {status:'incorrect',hint:'Missing controls or detection reagents.'}; },
-      frame:function(sel,stepIndex){ const steps=this.steps(); const step=steps[stepIndex]||steps[steps.length-1]; return `<div class="vl-canvas"><svg viewBox="0 0 640 360"><rect x="12" y="12" width="616" height="336" rx="8" fill="#fff" stroke="#e6eef7"/><g transform="translate(60,60)"><rect x="0" y="0" width="420" height="200" rx="8" fill="#fff" stroke="#cbd5e1"/><text x="12" y="-8" fill="#64748b">${step.title}</text><text x="12" y="16" fill="#64748b">${step.desc}</text></g></svg></div>`; },
+      frame:function(sel,stepIndex){
+        const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const steps=this.steps(); const step=steps[stepIndex]||steps[steps.length-1];
+        const washFactor = sel.wash && sel.wash.includes('3')?1: sel.wash && sel.wash.includes('1')?0.6:0.25;
+        const baseSignal = sel.format==='Sandwich'?100: sel.format==='Indirect'?70:40;
+        const signal = Math.round(baseSignal * washFactor * (sel.controls && sel.controls.includes('Positive')?1:0.7));
+        const intensity = Math.min(1, Math.max(0, signal/120));
+        const color = `rgba(220, 38, 38, ${intensity})`;
+        return `
+          <div class="vl-canvas vl-scene" role="img" aria-label="ELISA plate and pipetting">
+            <svg viewBox="0 0 720 360" width="100%">
+              <rect x="0" y="0" width="720" height="360" fill="#fff"/>
+              <g transform="translate(60,60)">
+                <text x="0" y="0" font-size="14" fill="#0f172a">ELISA — ${sel.format || 'Format'}</text>
+                <g transform="translate(0,20)">
+                  ${[0,1,2,3].map((r)=>`<g transform="translate(${r*80},0)">${[0,1,2,3].map((c)=>`<g transform="translate(${c*40},${r*40})"><rect x="0" y="0" width="36" height="36" rx="6" fill="#fff" stroke="#e6eef7"></rect><circle cx="18" cy="18" r="12" fill="${r===0&&c===0? color : r===0&&c===1? 'rgba(220,38,38,0.9)': r===0&&c===2? 'rgba(120,120,120,0.3)': 'rgba(200,200,200,0.12)'}"></circle></g>`).join('')}</g>`).join('')}
+                </g>
+                <g transform="translate(380,40)">
+                  <rect x="0" y="0" width="240" height="120" rx="6" fill="#f8fafc" stroke="#e6eef7"></rect>
+                  <text x="12" y="20" font-size="12" fill="#0f172a">Step: ${step.title}</text>
+                  <text x="12" y="40" font-size="12" fill="#64748b">${step.desc}</text>
+                  <text x="12" y="68" font-size="14" fill="#0f172a">Abs: ${signal}</text>
+                </g>
+              </g>
+            </svg>
+          </div>`;
+      },
       result:function(sel,validation){ const baseSignal = sel.format==='Sandwich'?100: sel.format==='Indirect'?70:40; const washFactor = sel.wash==='3 washes'?1: sel.wash==='1 wash'?0.6:0.25; const ctrl = sel.controls && sel.controls.includes('Positive'); const signal = Math.round(baseSignal * washFactor * (validation.status==='correct'?1:0.6)); return {grade: ctrl && validation.status==='correct'? 'success': (validation.status==='suboptimal'? 'partial':'fail'), signal}; },
       interpret:function(sel,validation,outcome){ const expected='A strong signal in positive wells and low background in negatives.'; const obs=`Signal: ${outcome.signal}`; const why = outcome.grade==='success'? 'Appropriate controls and wash steps produced clear signal.' : outcome.grade==='partial'? 'Some background due to insufficient washes.' : 'Poor controls/washing led to high background or low signal.'; return {result:outcome, expected, observed:obs, interpretation:why, improvements:'Improve wash steps, include appropriate controls, and verify antibody specificity.'}; }
     },
@@ -126,7 +244,32 @@
       fields:[{name:'sample',label:'Sample',type:'select',options:['Lysate A (HeLa)','Lysate B (E. coli)','Positive control','Negative control','Unknown sample']},{name:'gelPercent',label:'Gel %',type:'select',options:['8%','10%','12%']},{name:'transfer',label:'Transfer',type:'select',options:['Wet transfer','Semi-dry transfer']},{name:'primary',label:'Primary antibody',type:'select',options:['Anti-target 1:1000','Anti-target 1:5000']},{name:'loadingControl',label:'Loading control',type:'select',options:['Actin','Tubulin','None']}],
       steps:function(){ return [{key:'separate',title:'SDS-PAGE',desc:'Separate proteins by size.'},{key:'transfer',title:'Transfer',desc:'Transfer proteins to membrane.'},{key:'probe',title:'Probe',desc:'Probe with primary and secondary antibodies.'},{key:'detect',title:'Detect',desc:'Visualize bands.'}]; },
       validate:function(sel){ if(sel.loadingControl!=='None' && sel.transfer) return {status:'correct'}; if(sel.loadingControl==='None') return {status:'suboptimal',hint:'Add a loading control to allow lane comparisons.'}; return {status:'incorrect',hint:'Missing transfer or antibody selection.'}; },
-      frame:function(sel,stepIndex){ return `<div class="vl-canvas"><svg viewBox="0 0 640 360"><rect x="12" y="12" width="616" height="336" rx="8" fill="#fff" stroke="#e6eef7"/><g transform="translate(80,80)"><rect x="0" y="0" width="480" height="180" rx="6" fill="#fff" stroke="#cbd5e1"/><text x="12" y="-8" fill="#64748b">${this.steps? this.steps[stepIndex]:'Western blot step'}</text></g></svg></div>`; },
+      frame:function(sel,stepIndex){
+        const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const stepsArr = this.steps(); const step = stepsArr[stepIndex]||stepsArr[stepsArr.length-1];
+        const hasLoadingControl = sel.loadingControl && sel.loadingControl!=='None';
+        const showTransfer = stepIndex>=1; // after separation
+        const detectPhase = stepIndex>=2;
+        const bandOpacity = detectPhase? 0.95 : detectPhase===false && stepIndex===1? 0.6 : 0.25;
+        const lanes = 4;
+        const bands = Array.from({length:lanes}).map((_,i)=>`<rect x="${i*48 + 60}" y="${60 + i*6}" width="16" height="12" rx="2" fill="#0f172a" opacity="${bandOpacity}"></rect>`).join('');
+        return `
+          <div class="vl-canvas vl-scene" role="img" aria-label="Western blot transfer and detection">
+            <svg viewBox="0 0 720 360" width="100%">
+              <rect x="0" y="0" width="720" height="360" fill="#fff"/>
+              <g transform="translate(40,40)">
+                <text x="0" y="0" font-size="14" fill="#0f172a">Western Blot — ${sel.gelPercent || ''}</text>
+                <g transform="translate(0,20)">
+                  <rect x="40" y="20" width="340" height="180" rx="6" fill="#f8fafc" stroke="#e6eef7"></rect>
+                  ${bands}
+                </g>
+                <g transform="translate(420,40)"><text x="0" y="0" font-size="12" fill="#64748b">${step.title}</text><text x="0" y="18" font-size="12" fill="#64748b">${step.desc}</text></g>
+                ${showTransfer? '<g transform="translate(420,96)"><rect x="0" y="0" width="120" height="60" rx="6" fill="#fff" stroke="#cbd5e1"></rect><text x="8" y="18" font-size="12" fill="#0f172a">Transfer unit</text></g>':''}
+                ${hasLoadingControl? '<text x="48" y="220" font-size="11" fill="#0f172a">Loading control: present</text>':'<text x="48" y="220" font-size="11" fill="#ef4444">No loading control</text>'}
+              </g>
+            </svg>
+          </div>`;
+      },
       result:function(sel,validation){ const bands = sel.loadingControl==='None'? false: true; const success = validation.status==='correct' && bands; return {grade: success? 'success': (validation.status==='suboptimal' ? 'partial' : 'fail'), bands}; },
       interpret:function(sel,validation,outcome){ const expected='Distinct protein bands at expected sizes with loading control present.'; const obs = outcome.bands? 'Bands visible; loading control present.' : 'Weak signal or missing loading control.'; const why = outcome.grade==='success'? 'Good transfer and antibody specificity.' : outcome.grade==='partial'? 'Signal present but controls missing or weak.' : 'Transfer or antibody issues.'; return {result:outcome, expected, observed:obs, interpretation:why, improvements:'Ensure efficient transfer, use proper antibody dilutions and include loading controls.'}; }
     },
@@ -136,7 +279,28 @@
       fields:[{name:'sample',label:'Sample',type:'select',options:['Mixture A (3 components)','Mixture B (2 components)','Standard mix','Unknown sample']},{name:'mode',label:'Mode',type:'select',options:['Affinity','Ion exchange','Size exclusion','Reverse phase']},{name:'mobilePhase',label:'Mobile phase',type:'select',options:['Aqueous','Organic']},{name:'flowRate',label:'Flow rate',type:'select',options:['0.5','1.0','2.0']}],
       steps:function(){ return [{key:'inject',title:'Inject sample',desc:'Inject the sample onto the column.'},{key:'separate',title:'Separation',desc:'Components separate by affinity or size.'},{key:'detect',title:'Detection',desc:'Monitor detector output.'}]; },
       validate:function(sel){ if(sel.mode && sel.mobilePhase) return {status:'correct'}; return {status:'incorrect',hint:'Choose a chromatographic mode and mobile phase.'}; },
-      frame:function(sel,stepIndex){ return `<div class="vl-canvas"><svg viewBox="0 0 640 360"><rect x="12" y="12" width="616" height="336" rx="8" fill="#fff" stroke="#e6eef7"/><g transform="translate(60,60)"><path d="M0 200 C100 120 200 120 300 200 C380 260 460 120 540 180" stroke="#3b82f6" stroke-width="3" fill="none"/></g></svg></div>`; },
+      frame:function(sel,stepIndex){
+        const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const mode = sel.mode||'Mode'; const flow = sel.flowRate||'1.0';
+        const running = stepIndex>=1; const peaks = sel.mode==='Size exclusion'?3: sel.mode==='Affinity'?2: sel.mode==='Ion exchange'?3:2;
+        const peakHtml = Array.from({length:peaks}).map((_,i)=>`<path d="M ${20 + i*80} 120 C ${20 + i*80} ${80 - i*8} ${40 + i*80} ${40} ${60 + i*80} 120" stroke="#0ea5a3" stroke-width="3" fill="none" opacity="${running?1:0.25}"></path>`).join('');
+        return `
+          <div class="vl-canvas vl-scene" role="img" aria-label="Chromatography column and detector">
+            <svg viewBox="0 0 720 360" width="100%">
+              <rect x="0" y="0" width="720" height="360" fill="#fff"/>
+              <g transform="translate(40,40)">
+                <text x="0" y="0" font-size="14" fill="#0f172a">Chromatography — ${mode} | Flow ${flow} mL/min</text>
+                <g transform="translate(0,20)">
+                  <rect x="20" y="22" width="80" height="220" rx="6" fill="#f8fafc" stroke="#e6eef7"></rect>
+                  <rect x="116" y="60" width="520" height="180" rx="6" fill="#fff" stroke="#e6eef7"></rect>
+                  <text x="28" y="16" font-size="11" fill="#64748b">Column</text>
+                  <g transform="translate(120,80)">${peakHtml}</g>
+                </g>
+                <g transform="translate(560,40)"><text x="0" y="0" font-size="12" fill="#64748b">Detector</text></g>
+              </g>
+            </svg>
+          </div>`;
+      },
       result:function(sel,validation){ const peaks = sel.mode==='Size exclusion'?3: sel.mode==='Affinity'?2: sel.mode==='Ion exchange'?3:2; const quality = validation.status==='correct'? 'good':'poor'; return {grade: validation.status==='correct'? 'success':'partial', peaks, quality}; },
       interpret:function(sel,validation,outcome){ const expected='Separated peaks representing components; retention times reflect properties.'; const obs=`${outcome.peaks} peaks detected; quality ${outcome.quality}.`; const why = validation.status==='correct'? 'Appropriate mobile phase and mode.' : 'Mobile phase or mode mismatch caused poor separation.'; return {result:outcome, expected, observed:obs, interpretation:why, improvements:'Adjust mobile phase, flow rate, or column selection.'}; }
     },
@@ -146,7 +310,28 @@
       fields:[{name:'sample',label:'Sample',type:'select',options:['E. coli smear','HeLa cells stained','Tissue section H&E','Unknown sample']},{name:'mode',label:'Mode',type:'select',options:['Brightfield','Fluorescence','Confocal']},{name:'stain',label:'Stain',type:'select',options:['None','H&E','DAPI']},{name:'objective',label:'Objective',type:'select',options:['10x','40x','100x']}],
       steps:function(){ return [{key:'prep',title:'Prepare slide',desc:'Mount sample and apply stain if needed.'},{key:'focus',title:'Focus and choose objective',desc:'Select objective and focus image.'},{key:'capture',title:'Capture image',desc:'Acquire and interpret image.'}]; },
       validate:function(sel){ if(sel.mode && sel.objective) return {status:'correct'}; return {status:'incorrect',hint:'Choose imaging mode and objective lens.'}; },
-      frame:function(sel,stepIndex){ const stain = sel.stain||'None'; return `<div class="vl-canvas"><svg viewBox="0 0 640 360"><rect x="12" y="12" width="616" height="336" rx="8" fill="#fff" stroke="#e6eef7"/><g transform="translate(80,80)"><circle cx="240" cy="80" r="60" fill="${stain==='DAPI'?'#c7d2fe': stain==='H&E'?'#fde68a':'#ffffff'}" stroke="#cbd5e1"></circle></g></svg></div>`; },
+      frame:function(sel,stepIndex){
+        const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const stain = sel.stain||'None'; const objective = sel.objective||'10x'; const mode = sel.mode||'Brightfield';
+        const clarity = objective==='100x'? 'high': objective==='40x'? 'moderate':'low';
+        const zoom = objective==='100x'?1.6: objective==='40x'?1.2:1.0;
+        const fieldColor = stain==='DAPI'? '#c7d2fe' : stain==='H&E'? '#fde68a' : '#ffffff';
+        return `
+          <div class="vl-canvas vl-scene" role="img" aria-label="Microscope and slide">
+            <svg viewBox="0 0 720 360" width="100%">
+              <rect x="0" y="0" width="720" height="360" fill="#fff"/>
+              <g transform="translate(40,40)">
+                <text x="0" y="0" font-size="14" fill="#0f172a">Microscopy — ${mode} | ${objective}</text>
+                <g transform="translate(40,20)">
+                  <rect x="0" y="40" width="180" height="140" rx="8" fill="#f8fafc" stroke="#e6eef7"></rect>
+                  <rect x="24" y="20" width="48" height="24" rx="4" fill="#111827"></rect>
+                  <g transform="translate(220,60)"><rect x="0" y="0" width="240" height="120" rx="6" fill="#fff" stroke="#e6eef7"></rect><circle cx="120" cy="60" r="${60 * zoom}" fill="${fieldColor}" stroke="#cbd5e1"></circle></g>
+                  <g transform="translate(220,196)"><text x="0" y="14" font-size="12" fill="#64748b">Clarity: ${clarity}</text></g>
+                </g>
+              </g>
+            </svg>
+          </div>`;
+      },
       result:function(sel,validation){ const clarity = sel.objective==='100x'? 'high': sel.objective==='40x'? 'moderate':'low'; const success = validation.status==='correct'; return {grade: success? 'success':'partial', clarity}; },
       interpret:function(sel,validation,outcome){ const expected='Image showing specimen structures appropriate for stain and magnification.'; const obs=`Image clarity: ${outcome.clarity}`; const why = outcome.grade==='success'? 'Appropriate mode and objective used.' : 'Change objective or staining for better contrast.'; return {result:outcome, expected, observed:obs, interpretation:why, improvements:'Choose stain and objective suited to target structures.'}; }
     }
@@ -250,6 +435,40 @@
     // run button
     const runRow = document.createElement('div'); runRow.style.marginTop='8px'; const runBtn = document.createElement('button'); runBtn.type='button'; runBtn.className='btn'; runBtn.id='vlRun'; runBtn.textContent='Run Experiment'; runBtn.addEventListener('click', ()=> startExperiment()); runRow.appendChild(runBtn); form.appendChild(runRow);
     container.appendChild(form);
+    // If primerTm and annealTemp are present, set anneal default to primerTm-5 and keep them linked
+    const primerId = `vl-${exp.id}-primerTm`;
+    const annealId = `vl-${exp.id}-annealTemp`;
+    const primerEl = document.getElementById(primerId);
+    const annealEl = document.getElementById(annealId);
+    if(primerEl && annealEl){
+      const setAnnealDefault = ()=>{
+        const tm = Number(String(primerEl.value).replace(/[^0-9.-]/g,'')) || null;
+        if(tm){ annealEl.value = String(Math.max(Number(annealEl.min||45), tm - 5)); annealEl.dispatchEvent(new Event('change',{bubbles:true})); }
+      };
+      setAnnealDefault();
+      primerEl.addEventListener('change', setAnnealDefault);
+    }
+  }
+
+  // Read current form values for an experiment into a selections object
+  function gatherSelections(exp){
+    const sel = {};
+    const container = document.getElementById('vlSetup');
+    if(!container) return sel;
+    const prefix = `vl-${exp.id}-`;
+    container.querySelectorAll('select, input[type=number]').forEach(el=>{
+      if(!el.id) return;
+      let key = el.id;
+      if(key.indexOf(prefix)===0) key = key.slice(prefix.length);
+      else key = el.id.split('-').slice(2).join('-');
+      sel[key] = el.value;
+    });
+    // sensible default: if primerTm provided but annealTemp is not intentionally set, set annealTemp to primerTm-5
+    if(sel.primerTm && (!sel.annealTemp || String(sel.annealTemp).trim()==='')){
+      const tm = Number(String(sel.primerTm).replace(/[^0-9.-]/g,'')) || null;
+      if(tm) sel.annealTemp = String(Math.max(45, tm - 5));
+    }
+    return sel;
   }
 
   function handleFieldChange(e, exp){
@@ -262,7 +481,7 @@
     validateAndUpdate();
   }
 
-  function validateAndUpdate(){ const id = Engine.state.current; if(!id) return; const exp = Engine.experiments[id]; const sel = Engine.state.selections || {}; const validation = exp.validate(sel);
+  function validateAndUpdate(){ const id = Engine.state.current; if(!id) return; const exp = Engine.experiments[id]; const sel = gatherSelections(exp); Engine.state.selections = sel; const validation = exp.validate(sel);
     // update validation box
     const vbox = document.getElementById('vlValidation'); vbox.innerHTML = '';
     const status = document.createElement('div'); status.className = `vl-status ${validation.status}`; status.innerHTML = `${validation.status==='correct'? '✅ Correct': validation.status==='suboptimal'? '⚠️ Suboptimal' : '❌ Incorrect'} ${validation.hint? '- ' + validation.hint : ''}`;
