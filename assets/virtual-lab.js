@@ -578,9 +578,11 @@
 
     const list = document.getElementById('vlList');
     Object.values(Engine.experiments).forEach(exp=>{
-      const btn = document.createElement('button'); btn.type='button'; btn.className='vl-item'; btn.setAttribute('role','listitem'); btn.innerHTML = `<div><strong>${exp.title}</strong><div class="muted" style="font-size:12px">${exp.id}</div></div>`;
-      btn.addEventListener('click', ()=> selectExperiment(exp.id, btn));
-      list.appendChild(btn);
+    const btn = document.createElement('button'); btn.type='button'; btn.className='vl-item'; btn.setAttribute('role','listitem');
+    // Display only the human-readable title to students; keep internal id for logic only
+    btn.textContent = exp.title;
+    btn.addEventListener('click', ()=> selectExperiment(exp.id, btn));
+    list.appendChild(btn);
     });
 
     // control wiring
@@ -872,14 +874,43 @@
 
 
   function renderGelResult(exp, sel, validation, outcome, revealed){
-    // create gel lanes and band positions based on sample selection
+    // Build a multi-lane gel: Ladder | Sample | Positive ctrl | Negative ctrl
     const sizeMap = {'PCR product 100 bp':100,'PCR product 1,000 bp':1000,'Genomic digest 5,000 bp':5000,'Positive control':100,'Negative control':0};
-    const size = sizeMap[sel.sample] || 300;
-    const laneBands = [{pos: mapSizeToY(size), intensity: validation.status==='correct'?0.95: validation.status==='suboptimal'?0.6:0.25}];
-    const ladderHtml = sel.ladder==='Present'? Array.from({length:6}).map((_,i)=>`<rect x="${10}" y="${20 + i*18}" width="8" height="6" fill="#94a3b8"></rect>`).join('') : '';
-    const bandsHtml = laneBands.map((b,i)=>`<rect x="${80}" y="${b.pos}" width="220" height="8" rx="2" fill="#0f172a" opacity="${b.intensity}"></rect>`).join('');
+    const sampleSize = sizeMap[sel.sample] || null;
+    const ladderPresent = sel.ladder === 'Present';
+    const lanes = [];
+    // ladder lane (leftmost)
+    const ladderBands = ladderPresent? [100,300,500,700,1000,2000] : [];
+    // sample lane
+    if(sampleSize){ lanes.push({label:'Sample',bands:[sampleSize]}); }
+    else if(sel.sample && sel.sample.toLowerCase().includes('positive')){ lanes.push({label:'Sample',bands:[100]}); }
+    else if(sel.sample && sel.sample.toLowerCase().includes('negative')){ lanes.push({label:'Sample',bands:[]}); }
+    else { lanes.push({label:'Sample',bands:[]}); }
+    // add explicit controls if selected (preserve any UI options)
+    if(sel.sample && sel.sample.toLowerCase().includes('positive')) lanes.push({label:'Positive control',bands:[100]});
+    if(sel.sample && sel.sample.toLowerCase().includes('negative')) lanes.push({label:'Negative control',bands:[]});
+
     function mapSizeToY(sz){ if(sz<=200) return 32; if(sz<=2000) return 72; return 112; }
-    return `<div><svg viewBox="0 0 420 200" width="100%"><rect x="0" y="0" width="420" height="200" fill="#fff"/><g transform="translate(20,20)"><text x="0" y="12" fill="#0f172a">Simulated Gel</text><rect x="40" y="24" width="280" height="120" rx="6" fill="#f8fafc" stroke="#e6eef7"></rect>${ladderHtml}${bandsHtml}</g></svg>${revealed?`<div class="muted">Hidden sample guessed: ${revealed}</div>`:''}</div>`;
+
+    // render lanes
+    let laneHtml = '';
+    lanes.forEach((lane,i)=>{
+      const x = 60 + i*80;
+      laneHtml += `<g transform="translate(${x},0)"><text x="0" y="16" font-size="10" fill="#0f172a">${lane.label}</text><rect x="0" y="24" width="44" height="120" rx="4" fill="#fff" stroke="#e6eef7"></rect>`;
+      lane.bands.forEach((b,j)=>{
+        const y = mapSizeToY(b);
+        const intensity = validation.status==='correct'?0.95: validation.status==='suboptimal'?0.6:0.25;
+        laneHtml += `<rect x="4" y="${y}" width="36" height="8" rx="2" fill="#0f172a" opacity="${intensity}"></rect>`;
+      });
+      laneHtml += `</g>`;
+    });
+
+    // ladder html on left
+    const ladderHtml = ladderPresent? `<g transform="translate(10,0)"><text x="0" y="16" font-size="10" fill="#0f172a">Ladder</text><rect x="0" y="24" width="24" height="120" rx="4" fill="#fff" stroke="#e6eef7">` + ladderBands.map((s,i)=>`<rect x="4" y="${mapSizeToY(s)}" width="16" height="4" fill="#94a3b8"></rect>`).join('') + `</rect></g>` : '';
+
+    const qualityNote = outcome.resolutionOk? 'Gel resolution appropriate for fragment sizing.' : 'Gel % or voltage may be suboptimal for expected fragment size.';
+
+    return `<div><svg viewBox="0 0 520 200" width="100%"><rect x="0" y="0" width="520" height="200" fill="#fff"/><g transform="translate(10,10)"><text x="0" y="12" fill="#0f172a">Simulated Gel Electrophoresis</text><rect x="40" y="24" width="440" height="140" rx="6" fill="#f8fafc" stroke="#e6eef7"></rect>${ladderHtml}${laneHtml}</g></svg><div style="margin-top:6px" class="muted">${validation.status==='correct'? 'Clear bands at expected positions.' : validation.status==='suboptimal'? 'Bands present but weak or ladder faint.' : 'No clear bands; check sample, loading, or gel conditions.'}</div><div class="muted">${qualityNote}</div>${revealed?`<div class="muted">Hidden sample guessed: ${revealed}</div>`:''}</div>`;
   }
 
   function renderSpectrumResult(exp, sel, validation, outcome, revealed){
@@ -898,10 +929,20 @@
   }
 
   function renderWesternResult(exp, sel, validation, outcome, revealed){
-    // membrane with 4 lanes
+    // membrane with lanes and bands based on outcome.bands
     const lanes = 4;
-    const bandHtml = outcome.result && outcome.result.bands? '<rect x="60" y="60" width="16" height="12" fill="#0f172a"></rect>': (outcome.grade==='partial'? '<rect x="60" y="80" width="16" height="8" fill="#0f172a" opacity="0.6"></rect>': '');
-    return `<div><svg viewBox="0 0 320 200" width="100%"><rect x="10" y="10" width="300" height="180" rx="6" fill="#f8fafc" stroke="#e6eef7"/><g transform="translate(40,30)">${Array.from({length:lanes}).map((_,i)=>`<rect x="${i*48}" y="0" width="28" height="140" rx="2" fill="#fff" stroke="#e6eef7"></rect>`).join('')}${bandHtml}</g></svg>${revealed?`<div class="muted">Hidden sample: ${revealed}</div>`:''}</div>`;
+    const bands = outcome.bands || [];
+    const lanesHtml = Array.from({length:lanes}).map((_,i)=>`<g transform="translate(${i*56},0)"><rect x="0" y="0" width="36" height="140" rx="2" fill="#fff" stroke="#e6eef7"></rect></g>`).join('');
+    // place bands in first lane for simplicity, or across lanes if multiple bands provided
+    let bandHtml = '';
+    bands.forEach((b,i)=>{
+      const laneIndex = i % lanes;
+      const x = laneIndex * 56 + 6;
+      const y = b.pos || (60 + i*10);
+      const intensity = b.intensity || 0.8;
+      bandHtml += `<rect x="${x}" y="${y}" width="24" height="10" rx="2" fill="#0f172a" opacity="${intensity}"></rect>`;
+    });
+    return `<div><svg viewBox="0 0 320 200" width="100%"><rect x="10" y="10" width="300" height="180" rx="6" fill="#f8fafc" stroke="#e6eef7"/><g transform="translate(40,30)">${lanesHtml}${bandHtml}</g></svg>${revealed?`<div class="muted">Hidden sample: ${revealed}</div>`:''}</div>`;
   }
 
   function renderChromatogramResult(exp, sel, validation, outcome, revealed){
