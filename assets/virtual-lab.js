@@ -51,6 +51,13 @@
         // stepIndex mapping: 0=prep (pipette),1=load (move tubes),2=cycles (thermocycler active),3=detect (show gel icon)
         const pipetteClass = stepIndex===0? 'pipette animate' : 'pipette';
         const tubeY = stepIndex===1? 40 : 0; // move tube down to indicate loading
+        // layout for tubes: responsive spacing within rack width (220)
+        const rackWidth = 220;
+        const tubeCount = 4;
+        const tubeWidth = 32;
+        const rackPad = 12;
+        const gap = Math.max(8, Math.floor((rackWidth - rackPad*2 - tubeWidth*tubeCount)/(tubeCount-1)));
+        const tubeX = (i) => rackPad + i*(tubeWidth + gap);
         const cyclerActive = stepIndex===2 ? true : false;
         const thermColor = cyclerActive? '#fde68a' : '#e6eefc';
         return `
@@ -67,7 +74,7 @@
               <!-- tube rack -->
               <g transform="translate(60,120)">
                 <rect x="0" y="0" width="220" height="100" rx="6" fill="#f3f4f6" stroke="#e6eef7"></rect>
-                ${[0,1,2,3].map((i)=>`<g class="tube" transform="translate(${12 + i*52},${10 + tubeY})"><rect x="0" y="0" width="32" height="72" rx="6" fill="#ffffff" stroke="#cbd5e1"></rect><rect class="tube-liquid" x="6" y="${42}" width="20" height="${18}" rx="3" fill="#dbeafe"></rect><text x="0" y="88" font-size="10" fill="#475569">${i===0? sampleLabel : i===1? enzyme : 'Mix'}</text></g>`).join('')}
+                ${[0,1,2,3].map((i)=>`<g class="tube" transform="translate(${tubeX(i)},${10 + tubeY})"><rect x="0" y="0" width="${tubeWidth}" height="72" rx="6" fill="#ffffff" stroke="#cbd5e1"></rect><rect class="tube-liquid" x="6" y="${42}" width="${Math.max(12, tubeWidth-12)}" height="${18}" rx="3" fill="#dbeafe"></rect><g class="tube-label"><rect x="${-8}" y="78" width="${tubeWidth+16}" height="20" rx="4" fill="rgba(255,255,255,0.9)"></rect><text x="${tubeWidth/2}" y="92" font-size="10" fill="#475569" text-anchor="middle" style="pointer-events:none;white-space:pre-wrap">${i===0? sampleLabel : i===1? enzyme : 'Mix'}</text></g></g>`).join('')}
               </g>
               <!-- pipette (animated during prep) -->
               <g transform="translate(360,80)"><g class="${pipetteClass}" >
