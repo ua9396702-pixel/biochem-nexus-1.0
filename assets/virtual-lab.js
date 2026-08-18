@@ -19,13 +19,36 @@
     'pcr':{
       id:'pcr', title:'PCR', refs:(window.BN && window.BN.topicPages && window.BN.topicPages.pcr && window.BN.topicPages.pcr.refs) || [],
       fields:[
-        {name:'sample',label:'Sample',type:'select',options:['E. coli DNA (K-12)','Bacillus subtilis DNA','Human genomic DNA','Positive control','Negative control','Unknown sample']},
+        {name:'sample',label:'Sample',type:'select',options:['Bacterial: E. coli genomic DNA','Bacterial: Bacillus subtilis genomic DNA','Plasmid: pUC19 plasmid DNA','Plant: Arabidopsis thaliana genomic DNA','Animal: Mouse genomic DNA','Human: Human genomic DNA','cDNA: Tissue cDNA','Synthetic: Designed template','Positive control','Negative control','Unknown sample']},
         {name:'polymerase',label:'Polymerase',type:'select',options:['Taq (standard)','Hot-start Taq','High-fidelity polymerase']},
-        {name:'primerTm',label:'Primer Tm',type:'select',options:['52°C','55°C','58°C','60°C','62°C']},
-        {name:'annealTemp',label:'Annealing temp',type:'number',min:45,max:68,step:1,default:55},
+        {name:'primerPair',label:'Primer pair',type:'select',options:['16S rRNA (bacterial)','lacZ (plasmid)','COI (animal/plant)','Beta-actin (human)','GFP (plasmid)','Synthetic target']},
+        {name:'primerTm',label:'Primer Tm',type:'select',options:['50°C','52°C','55°C','58°C','60°C','62°C']},
+        {name:'annealTemp',label:'Annealing temp',type:'number',min:40,max:68,step:1,default:55},
         {name:'mg',label:'MgCl2',type:'select',options:['1.5 mM','2.5 mM','4.0 mM']},
         {name:'cycles',label:'Cycles',type:'number',min:20,max:40,step:1,default:30}
       ],
+      samples:{
+        'Bacterial: E. coli genomic DNA':{category:'Bacterial',desc:'E. coli K-12 genomic DNA; bacterial template suitable for 16S primers.',copy:'high'},
+        'Bacterial: Bacillus subtilis genomic DNA':{category:'Bacterial',desc:'B. subtilis genomic DNA; suitable for bacterial primers.',copy:'medium'},
+        'Plasmid: pUC19 plasmid DNA':{category:'Plasmid',desc:'Common cloning plasmid; high-copy plasmid template.',copy:'high'},
+        'Plant: Arabidopsis thaliana genomic DNA':{category:'Plant',desc:'Plant genomic DNA; may contain introns for some targets.',copy:'medium'},
+        'Animal: Mouse genomic DNA':{category:'Animal',desc:'Mouse genomic DNA.',copy:'medium'},
+        'Human: Human genomic DNA':{category:'Human',desc:'Human genomic DNA.',copy:'low'},
+        'cDNA: Tissue cDNA':{category:'cDNA',desc:'cDNA generated from mRNA; useful for exon-spanning primers.',copy:'low'},
+        'Synthetic: Designed template':{category:'Synthetic',desc:'Short synthetic DNA template with defined target sequence.',copy:'high'},
+        'Positive control':{category:'Control',desc:'Positive control containing target sequence.',copy:'high'},
+        'Negative control':{category:'Control',desc:'No template control (NTC).',copy:'none'},
+        'Unknown sample':{category:'Unknown',desc:'An unknown sample; use primers to determine identity.',copy:'unknown'}
+      },
+      primers:{
+        '16S rRNA (bacterial)':{tm:55,amplicon:150,compatible:['Bacterial: E. coli genomic DNA','Bacterial: Bacillus subtilis genomic DNA','Positive control']},
+        'lacZ (plasmid)':{tm:58,amplicon:300,compatible:['Plasmid: pUC19 plasmid DNA','Positive control']},
+        'COI (animal/plant)':{tm:60,amplicon:650,compatible:['Animal: Mouse genomic DNA','Plant: Arabidopsis thaliana genomic DNA','Positive control']},
+        'Beta-actin (human)':{tm:62,amplicon:250,compatible:['Human: Human genomic DNA','cDNA: Tissue cDNA','Positive control']},
+        'GFP (plasmid)':{tm:52,amplicon:720,compatible:['Plasmid: pUC19 plasmid DNA','Synthetic: Designed template','Positive control']},
+        'Synthetic target':{tm:50,amplicon:120,compatible:['Synthetic: Designed template','Positive control']}
+      },
+
       steps:function(sel){ return [
         {key:'prep',title:'Prepare master mix',desc:'Combine polymerase, primers, dNTPs, buffer and template.'},
         {key:'load',title:'Load into thermal cycler',desc:'Place tubes into thermal cycler wells.'},
@@ -33,14 +56,50 @@
         {key:'detect',title:'Detection',desc:'Visualize product on gel or read qPCR signal.'}
       ]; },
       validate:function(sel){
-        if(!sel.sample || !sel.polymerase || !sel.primerTm) return {status:'incorrect',hint:'Missing sample, polymerase or primer Tm.'};
-        const tm = Number((sel.primerTm||'55').replace('°C',''));
-        const anneal = Number(sel.annealTemp || (tm-5));
-        const diff = Math.abs(anneal - (tm-5));
-        if(diff<=2 && sel.mg==='2.5 mM' && sel.polymerase!=='Taq (standard)') return {status:'correct'};
-        if(diff<=3) return {status:'suboptimal',hint:'Annealing temperature near ideal; enzyme choice or Mg2+ may be suboptimal.'};
-        return {status:'incorrect',hint:'Annealing temperature poorly matched to primer Tm; expect non-specific bands or low yield.'};
+        // Require core selections
+        if(!sel.sample || !sel.polymerase || !sel.primerPair || !sel.primerTm) return {status:'incorrect',hint:'Missing sample, polymerase, primer pair or primer Tm.'};
+        const samples = this.samples || {};
+        const primers = this.primers || {};
+        const sampleDef = samples[sel.sample] || {category:'Unknown',copy:'unknown'};
+        const primerDef = primers[sel.primerPair] || {};
+
+        // parse Tm and annealing
+        const tm = Number((sel.primerTm||primerDef.tm||'55').toString().replace('°C','')) || 55;
+        const anneal = Number(sel.annealTemp || (tm - 5));
+        const diff = Math.abs(anneal - (tm - 5));
+        let annealScore = diff<=2 ? 'optimal' : diff<=5 ? 'suboptimal' : 'incorrect';
+
+        // Mg2+ check
+        const mgVal = Number((sel.mg||'2.5 mM').toString().replace(' mM','')) || 2.5;
+        let mgScore = (mgVal>=1.5 && mgVal<=2.5) ? 'optimal' : (mgVal>0 && mgVal<=4.0) ? 'suboptimal' : 'incorrect';
+
+        // polymerase suitability (simple heuristics)
+        let polyScore = 'optimal';
+        const amplicon = primerDef.amplicon || 200;
+        if(amplicon>2000 && sel.polymerase==='Taq (standard)') polyScore = 'suboptimal';
+
+        // cycles check
+        const cycles = Number(sel.cycles||30);
+        let cyclesScore = (cycles>=25 && cycles<=35) ? 'optimal' : (cycles>=20 && cycles<=40) ? 'suboptimal' : 'incorrect';
+
+        // primer/sample compatibility
+        let compatible = true;
+        if(sampleDef.category==='Unknown'){
+          // unknown sample: compatibility unknown — allow experiment but outcome will reveal
+          compatible = true;
+        } else if(Array.isArray(primerDef.compatible) && primerDef.compatible.length){
+          compatible = primerDef.compatible.indexOf(sel.sample) !== -1;
+        }
+
+        if(!compatible) return {status:'incorrect',hint:'Selected primer pair is unlikely to match the chosen sample.'};
+
+        // aggregate scores
+        const scores = [annealScore, mgScore, polyScore, cyclesScore];
+        if(scores.every(s=>s==='optimal')) return {status:'correct',details:{anneal:annealScore,mg:mgScore,poly:polyScore,cycles:cyclesScore}};
+        if(scores.some(s=>s==='incorrect')) return {status:'incorrect',hint:'One or more parameters are outside acceptable ranges. Check annealing temp, Mg2+, cycles, or primer compatibility.',details:{anneal:annealScore,mg:mgScore,poly:polyScore,cycles:cyclesScore}};
+        return {status:'suboptimal',hint:'Some parameters are suboptimal; small adjustments (annealing temp, Mg2+, cycles) may improve yield.',details:{anneal:annealScore,mg:mgScore,poly:polyScore,cycles:cyclesScore}};
       },
+
       // animation frame generator: returns SVG for each step reflecting selections
       frame:function(sel,stepIndex,subStep){
         subStep = Number(subStep||0);
@@ -740,23 +799,73 @@
 
   // -- Visualization renderers --
   function renderPCRResult(exp, sel, validation, outcome, revealed){
+    const primers = exp.primers || {};
+    const samples = exp.samples || {};
+    const primerDef = primers[sel.primerPair] || {};
+    const sampleDef = samples[sel.sample] || {};
+    const amplicon = primerDef.amplicon || (sel.sample && sel.sample.includes('100')?100:300);
+
     // amplification curve: y-scale by outcome.yield
     const yieldVal = outcome.yield || 0;
     const maxY = Math.max(200, yieldVal*1.2);
     const points = [];
     const cycles = Number(sel.cycles||30);
-    for(let i=0;i<=cycles;i+=Math.ceil(cycles/10)){
-      const x = Math.round((i/cycles)*300);
-      // simulate exponential-looking curve depending on yield
-      const noise = 1 + (Math.random()*0.08);
-      const y = Math.round((1 - Math.exp(-i/(cycles/6))) * (yieldVal/maxY) * 120 * noise);
+    const steps = Math.max(8, Math.min(40, Math.ceil(cycles/Math.max(1, Math.ceil(cycles/10)))));
+    for(let i=0;i<=steps;i++){
+      const pct = i/steps * cycles;
+      const x = Math.round((pct/cycles)*300);
+      const noise = 1 + (Math.random()*0.06);
+      const y = Math.round((1 - Math.exp(-pct/(cycles/6))) * (yieldVal/maxY) * 120 * noise);
       points.push([x,120 - y]);
     }
     const path = points.map((p,i)=>`${i===0?'M':'L'} ${40 + p[0]} ${40 + p[1]}`).join(' ');
-    // endpoint gel from outcome.bands
-    const bandsHtml = (outcome.bands || []).map((b,i)=>`<rect x="${40 + i*80}" y="${220 - (i*20)}" width="40" height="8" rx="2" fill="#0f172a" opacity="${b.intensity||0.6}"></rect>`).join('');
-    return `<div><svg viewBox="0 0 520 280" width="100%"><rect x="0" y="0" width="520" height="280" fill="#fff"/><g transform="translate(20,20)"><text x="0" y="12" fill="#0f172a">Amplification curve</text><path d="${path}" stroke="#059669" stroke-width="3" fill="none" stroke-linejoin="round" stroke-linecap="round"></path><g transform="translate(0,140)"><text x="0" y="0" fill="#64748b" font-size="12">Endpoint gel</text><rect x="0" y="8" width="480" height="80" rx="4" fill="#f8fafc" stroke="#e6eef7"></rect>${bandsHtml}</g></g></svg><div style="margin-top:8px"><strong>Yield:</strong> ${yieldVal} (relative units)</div>${revealed?`<div style="margin-top:4px" class="muted">Hidden sample likely: ${revealed}</div>`:''}</div>`;
+
+    // endpoint gel from outcome.bands (if none, create a band if yield suggests)
+    const bands = outcome.bands && outcome.bands.length? outcome.bands : (yieldVal>150? [{pos:80,intensity:0.95}]: (yieldVal>50? [{pos:140,intensity:0.6}]: []));
+    const bandsHtml = bands.map((b,i)=>`<rect x="${40 + i*80}" y="${220 - (i*20)}" width="40" height="8" rx="2" fill="#0f172a" opacity="${b.intensity||0.6}"></rect>`).join('');
+
+    // build details panel
+    const sampleLabel = sel.sample || 'Sample';
+    const primerLabel = sel.primerPair || 'Primer';
+    const status = (validation && validation.status) || 'unknown';
+    const conditions = [];
+    if(sel.annealTemp) conditions.push(`Anneal ${sel.annealTemp}°C`);
+    if(sel.mg) conditions.push(`${sel.mg} MgCl2`);
+    if(sel.polymerase) conditions.push(sel.polymerase);
+    conditions.push(`${sel.cycles||30} cycles`);
+
+    return `<div>
+      <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start">
+        <div style="flex:1 1 420px;min-width:320px">
+          <svg viewBox="0 0 520 280" width="100%"><rect x="0" y="0" width="520" height="280" fill="#fff"/>
+            <g transform="translate(20,20)">
+              <text x="0" y="12" fill="#0f172a">Amplification curve</text>
+              <path d="${path}" stroke="#059669" stroke-width="3" fill="none" stroke-linejoin="round" stroke-linecap="round"></path>
+              <g transform="translate(0,140)"><text x="0" y="0" fill="#64748b" font-size="12">Endpoint gel</text>
+                <rect x="0" y="8" width="480" height="80" rx="4" fill="#f8fafc" stroke="#e6eef7"></rect>
+                ${bandsHtml}
+              </g>
+            </g>
+          </svg>
+        </div>
+        <div style="flex:0 0 260px;min-width:220px">
+          <div style="border:1px solid #e6eef7;padding:10px;border-radius:6px;background:#fff">
+            <div style="font-weight:600;margin-bottom:6px">PCR Result Summary</div>
+            <div><strong>Sample:</strong> ${sampleLabel}</div>
+            <div style="font-size:12px;color:#6b7280;margin-bottom:6px">${sampleDef.desc || ''}</div>
+            <div><strong>Primer:</strong> ${primerLabel}</div>
+            <div><strong>Target (amplicon):</strong> ${amplicon} bp</div>
+            <div><strong>Conditions:</strong> ${conditions.join(' · ')}</div>
+            <div style="margin-top:8px"><strong>Validation:</strong> ${status.toUpperCase()}</div>
+            <div style="margin-top:6px"><strong>Yield:</strong> ${yieldVal} (relative)</div>
+            ${revealed?`<div style="margin-top:6px" class="muted">Hidden sample guessed: ${revealed}</div>`:''}
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:8px"><strong>Interpretation:</strong> ${validation && validation.status==='correct'? 'Conditions are within the recommended ranges for the selected primer and sample.' : (validation && validation.status==='suboptimal'? 'Some parameters are suboptimal; yield or specificity may be reduced.' : 'Primer/sample mismatch or incorrect conditions likely — little or no amplification expected.')}</div>
+    </div>`;
   }
+
 
   function renderGelResult(exp, sel, validation, outcome, revealed){
     // create gel lanes and band positions based on sample selection
