@@ -415,7 +415,7 @@
     if(el) el.classList.add('active');
     const exp = Engine.experiments[id];
     document.getElementById('vlTitle').textContent = exp.title;
-    document.getElementById('vlDiagram').innerHTML = exp.frame({},0);
+    document.getElementById('vlDiagram').innerHTML = exp.frame({},0,0);
     renderSetupForm(exp);
     const refs = exp.refs || [];
     document.getElementById('vlReferences').innerHTML = `<strong>References</strong><ul>${refs.map(r=>`<li class="muted">${r}</li>`).join('')}</ul>`;
@@ -498,7 +498,7 @@
     // enable/disable run
     const runBtn = document.getElementById('vlRun'); if(runBtn) runBtn.disabled = validation.status==='incorrect';
     // render diagram preview
-    const diag = document.getElementById('vlDiagram'); diag.innerHTML = exp.frame(sel, Engine.state.step || 0);
+    const diag = document.getElementById('vlDiagram'); diag.innerHTML = exp.frame(sel, Engine.state.step || 0, Engine.state.subStep || 0);
   }
 
   // Experiment control functions
@@ -512,10 +512,62 @@
   function step(dir){ const id = Engine.state.current; if(!id) return; const exp = Engine.experiments[id]; const steps = exp.steps(Engine.state.selections||{}); Engine.state.step = clamp(Engine.state.step + dir, 0, steps.length-1); renderStep(); }
   function restart(){ Engine.state.step = 0; renderStep(); }
 
-  function runLoop(){ if(!Engine.state.playing) return; const id = Engine.state.current; if(!id) return; const exp = Engine.experiments[id]; const steps = exp.steps(Engine.state.selections||{});
-    renderStep(); if(Engine.state.step < steps.length -1){ animTimer = setTimeout(()=>{ Engine.state.step++; runLoop(); }, 1200 / Engine.state.speed); } else { Engine.state.playing = false; if(typeof Engine.state.onFinish === 'function') Engine.state.onFinish(); } }
+  function runLoop(){
+    if(!Engine.state.playing) return;
+    const id = Engine.state.current; if(!id) return;
+    const exp = Engine.experiments[id];
+    const sel = Engine.state.selections || {};
+    const steps = exp.steps(sel);
+    const stepIndex = Engine.state.step;
 
-  function renderStep(){ const id = Engine.state.current; if(!id) return; const exp = Engine.experiments[id]; const sel = Engine.state.selections || {}; const stepIndex = Engine.state.step; const steps = exp.steps(sel); const step = steps[stepIndex]; document.getElementById('vlDiagram').innerHTML = exp.frame(sel, stepIndex); document.getElementById('vlStepIndicator').textContent = `Step ${stepIndex+1} of ${steps.length} — ${step.title}`; }
+    // determine timeline for the current step. timeline may be:
+    // - undefined/null: default single substep
+    // - number: number of substeps
+    // - array: array of durations in ms for each substep
+    // - function(sel, stepIndex) -> number|array
+    let timeline = null;
+    if(typeof exp.timeline === 'function') timeline = exp.timeline(sel, stepIndex);
+    else if(exp.timeline && exp.timeline[stepIndex] !== undefined) timeline = exp.timeline[stepIndex];
+
+    let durations = null;
+    let subCount = 1;
+    if(timeline !== null && timeline !== undefined){
+      if(typeof timeline === 'number'){
+        subCount = Math.max(1, Number(timeline));
+        durations = new Array(subCount).fill(Math.max(80, Math.round(1200 / Engine.state.speed)));
+      } else if(Array.isArray(timeline)){
+        durations = timeline.map(d => Math.max(50, Math.round(Number(d) / Engine.state.speed)));
+        subCount = durations.length || 1;
+      }
+    }
+
+    Engine.state.subStep = Engine.state.subStep || 0;
+
+    // render current substep
+    renderStep();
+
+    if(Engine.state.subStep < subCount - 1){
+      const delay = durations ? durations[Engine.state.subStep] : Math.max(80, Math.round(1200 / Engine.state.speed));
+      animTimer = setTimeout(()=>{ Engine.state.subStep++; runLoop(); }, delay);
+    } else {
+      // last substep of this step — advance to next step or finish
+      if(stepIndex < steps.length - 1){
+        const delay = durations ? durations[Engine.state.subStep] : Math.max(80, Math.round(1200 / Engine.state.speed));
+        animTimer = setTimeout(()=>{ Engine.state.step++; Engine.state.subStep = 0; runLoop(); }, delay);
+      } else {
+        Engine.state.playing = false;
+        Engine.state.subStep = 0;
+        if(typeof Engine.state.onFinish === 'function') Engine.state.onFinish();
+      }
+    }
+  }
+
+  function renderStep(){ const id = Engine.state.current; if(!id) return; const exp = Engine.experiments[id]; const sel = Engine.state.selections || {}; const stepIndex = Engine.state.step; const steps = exp.steps(sel); const step = steps[stepIndex]; const subStep = Engine.state.subStep || 0; document.getElementById('vlDiagram').innerHTML = exp.frame(sel, stepIndex, subStep); // show substep when a timeline exists for this step
+    let hasTimeline = false;
+    if(typeof exp.timeline === 'function') hasTimeline = true;
+    else if(exp.timeline && exp.timeline[stepIndex] !== undefined) hasTimeline = true;
+    const subText = hasTimeline? ` (sub ${subStep+1})` : '';
+    document.getElementById('vlStepIndicator').textContent = `Step ${stepIndex+1} of ${steps.length} — ${step.title}${subText}`; }
 
   function finishExperiment(id, sel, validation){
     const exp = Engine.experiments[id];
