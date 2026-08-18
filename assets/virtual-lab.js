@@ -243,11 +243,14 @@
         return 1;
       },
       result:function(sel,validation){
-        // simple quantitative model: base yield depends on sample copy number and validation
-        const copy = (sel.sample||'').includes('high')? 1000 : (sel.sample||'').includes('low')? 10 : 100;
-        const enzymeFactor = sel.polymerase && sel.polymerase.includes('High-fidelity')?1.0: sel.polymerase && sel.polymerase.includes('Hot-start')?1.1:0.9;
+        // quantitative model using sample definitions and validation quality
+        const samples = this.samples || {};
+        const sampleDef = samples[sel.sample] || {copy:'medium'};
+        const copyMap = {high:1000, medium:100, low:25, none:0, unknown:50};
+        const copy = copyMap[sampleDef.copy] || 100;
+        const enzymeFactor = sel.polymerase && sel.polymerase.includes('High-fidelity')?1.0: sel.polymerase && sel.polymerase.includes('Hot-start')?1.1:0.95;
         const cycleFactor = clamp((sel.cycles||30)/30,0.5,2);
-        const quality = validation.status==='correct'?1.0: validation.status==='suboptimal'?0.5:0.15;
+        const quality = validation.status==='correct'?1.0: validation.status==='suboptimal'?0.5:0.12;
         const yieldValue = Math.round(copy * enzymeFactor * cycleFactor * quality);
         // band visibility logic
         const bands = [];
@@ -257,6 +260,7 @@
         const success = validation.status==='correct' && yieldValue>100;
         return {grade: success? 'success' : (validation.status==='suboptimal'? 'partial' : 'fail'), yield:yieldValue, bands};
       },
+
       interpret:function(sel,validation,outcome){
         const expected = 'A clear band at expected size if primers match the template.';
         let why = '';
