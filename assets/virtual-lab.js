@@ -51,13 +51,16 @@
         const cycleText = `Cycles: ${sel.cycles||30}`;
         // stepIndex mapping: 0=prep (pipette),1=load (move tubes),2=cycles (thermocycler active),3=detect (show gel icon)
         const pipetteClass = stepIndex===0? 'pipette animate' : 'pipette';
-        // layout for tubes: responsive spacing within rack width (220)
-        const rackWidth = 220;
+        // layout for tubes: responsive spacing computed from label widths to avoid overlap
         const tubeCount = 4;
         const tubeWidth = 32;
         const rackPad = 12;
-        const gap = Math.max(8, Math.floor((rackWidth - rackPad*2 - tubeWidth*tubeCount)/(tubeCount-1)));
-        const tubeX = (i) => rackPad + i*(tubeWidth + gap);
+        const labelTexts = [sampleLabel, enzyme, 'Mix', 'Mix'];
+        const estimateLabelWidth = (t) => Math.min(140, Math.max(tubeWidth + 16, (t||'').length * 7));
+        const labelWidths = labelTexts.map(estimateLabelWidth);
+        const maxLabelWidth = Math.max.apply(null, labelWidths);
+        const centerGap = Math.max( (tubeWidth + 16), maxLabelWidth + 12 );
+        const tubeX = (i) => rackPad + i * centerGap;
 
         // dynamic state per substep
         let tubeY = stepIndex===1? 40 : 0; // base vertical move during load
@@ -108,7 +111,10 @@
             const h = liquidHeights[i];
             const ly = 42 + (18 - h);
             const ox = tubeOffsetX[i] || 0;
-            return `<g class="tube" transform="translate(${tubeX(i) + ox},${10 + tubeY})"><rect x="0" y="0" width="${tubeWidth}" height="72" rx="6" fill="#ffffff" stroke="#cbd5e1"></rect><rect class="tube-liquid" x="6" y="${ly}" width="${Math.max(12, tubeWidth-12)}" height="${h}" rx="3" fill="#dbeafe"></rect><g class="tube-label"><rect x="${-8}" y="78" width="${tubeWidth+16}" height="20" rx="4" fill="rgba(255,255,255,0.9)"></rect><text x="${tubeWidth/2}" y="92" font-size="10" fill="#475569" text-anchor="middle" style="pointer-events:none;white-space:pre-wrap">${i===0? sampleLabel : i===1? enzyme : 'Mix'}</text></g></g>`;
+            const labelText = (i===0? sampleLabel : i===1? enzyme : 'Mix');
+            const labelW = labelWidths[i] || (tubeWidth+16);
+            const lx = Math.round(-labelW/2);
+            return `<g class="tube" transform="translate(${tubeX(i) + ox},${10 + tubeY})"><rect x="0" y="0" width="${tubeWidth}" height="72" rx="6" fill="#ffffff" stroke="#cbd5e1"></rect><rect class="tube-liquid" x="6" y="${ly}" width="${Math.max(12, tubeWidth-12)}" height="${h}" rx="3" fill="#dbeafe"></rect><g class="tube-label"><rect x="${lx}" y="78" width="${labelW}" height="20" rx="4" fill="rgba(255,255,255,0.95)"></rect><text x="0" y="92" font-size="10" fill="#475569" text-anchor="middle" style="pointer-events:none;white-space:nowrap" textLength="${Math.max(24, labelW-6)}" lengthAdjust="spacingAndGlyphs">${labelText}</text></g></g>`;
           }).join('');
         })();
 
