@@ -172,6 +172,11 @@
         if(stepIndex===2){ const cycles = Math.max(1, Number(sel.cycles||30)); const displayCycles = Math.min(8, cycles); return displayCycles * 3; } // cycles: denature/anneal/extend per displayed cycle
         return 1;
       },
+      timeline:function(sel,stepIndex){
+        if(stepIndex===1) return 4; // load samples
+        if(stepIndex===2) return 16; // run gel progression
+        return 1;
+      },
       result:function(sel,validation){
         // simple quantitative model: base yield depends on sample copy number and validation
         const copy = (sel.sample||'').includes('high')? 1000 : (sel.sample||'').includes('low')? 10 : 100;
@@ -212,11 +217,11 @@
         {key:'stain',title:'Stain & image',desc:'Stain the gel and visualize bands under UV.'}
       ]; },
       validate:function(sel){ if(!sel.sample || !sel.agarose) return {status:'incorrect',hint:'Select sample and agarose percentage.'}; const ideal = sel.sample.includes('100')? '2.0%' : sel.sample.includes('1,000')? '1.0%' : '0.8%'; if(sel.agarose===ideal && sel.ladder==='Present') return {status:'correct'}; if(sel.agarose===ideal) return {status:'suboptimal',hint:'Add ladder for size comparison.'}; return {status:'incorrect',hint:'Gel percentage mismatched to fragment size; expect poor resolution.'}; },
-      frame:function(sel,stepIndex){
+      frame:function(sel,stepIndex,subStep){ subStep = Number(subStep||0);
         const wells = 6; const frag = sel.sample || ''; const size = frag.includes('100')?100: frag.includes('1,000')?1000:frag.includes('5,000')?5000:300;
         const loading = stepIndex===1; const running = stepIndex===2; const staining = stepIndex===3;
         // build wells and pipette; animate migration by shifting band positions when running
-        const bandOffset = running? (stepIndex===2? 40 : 0) : 0;
+        const bandOffset = running? Math.min(120, subStep * 6) : 0;
         return `
           <div class="vl-canvas vl-scene" role="img" aria-label="Gel electrophoresis setup">
             <svg viewBox="0 0 720 360" width="100%">
@@ -246,12 +251,15 @@
       fields:[{name:'sample',label:'Sample',type:'select',options:['Nucleic acid solution (DNA)','Protein assay solution','Blank only','Unknown sample']},{name:'wavelength',label:'Wavelength (nm)',type:'select',options:['260','280','595']},{name:'blank',label:'Blank',type:'select',options:['Solvent blank','No blank']},{name:'dilution',label:'Dilution',type:'select',options:['1','1:10','1:100']}],
       steps:function(){ return [{key:'blank',title:'Blank the instrument',desc:'Place blank and zero the absorbance.'},{key:'measure',title:'Measure sample',desc:'Place cuvette and record absorbance.'},{key:'calc',title:'Calculate concentration',desc:'Apply Beer-Lambert or standard curve.'}]; },
       validate:function(sel){ if(sel.blank==='Solvent blank') return {status:'correct'}; return {status:'suboptimal',hint:'Blanking improves accuracy; without blank expect background.'}; },
-      frame:function(sel,stepIndex){
+      frame:function(sel,stepIndex,subStep){ subStep = Number(subStep||0);
         const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const w = sel.wavelength||260;
         const dilution = sel.dilution||'1';
         const base = dilution==='1:100'?0.15: dilution==='1:10'?0.95: 1.8;
-        const absVal = (base * (w==260?0.9: w==280?0.8:0.65)).toFixed(2);
+        // animate measurement when stepIndex===1 using subStep progress
+        let measureProgress = 1;
+        if(stepIndex===1) measureProgress = Math.min(1, (subStep+1)/4);
+        const absVal = (base * (w==260?0.9: w==280?0.8:0.65) * measureProgress).toFixed(2);
         const step = this.steps()[stepIndex] ? this.steps()[stepIndex].title : 'Measure sample';
         const beamOpacity = reduced?0.6:0.95;
         const cuvetteFill = `rgba(59,130,246,${Math.min(0.95, 0.2 + Number(absVal)/3)})`;
@@ -272,7 +280,7 @@
                 </g>
                 <g transform="translate(180,80)">
                   <rect x="0" y="28" width="120" height="12" fill="rgba(99,102,241,0.06)"/>
-                  <rect x="0" y="24" width="120" height="4" fill="rgba(99,102,241,${beamOpacity})"></rect>
+                  <rect x="0" y="24" width="${Math.round(120 * measureProgress)}" height="4" fill="rgba(99,102,241,${beamOpacity})"></rect>
                   <circle cx="140" cy="30" r="18" fill="#eef2ff" stroke="#c7d2fe"></circle>
                   <text x="170" y="36" font-size="12" fill="#0f172a">Detector</text>
                 </g>
@@ -294,12 +302,16 @@
       fields:[{name:'sample',label:'Sample',type:'select',options:['Patient serum (positive)','Patient serum (negative)','Positive control','Negative control','Unknown sample']},{name:'format',label:'Format',type:'select',options:['Sandwich','Indirect','Direct']},{name:'controls',label:'Controls',type:'select',options:['Positive and negative','Only negative','None']},{name:'wash',label:'Wash steps',type:'select',options:['3 washes','1 wash','No wash']},{name:'incubation',label:'Incubation',type:'select',options:['Room temp 1h','37°C 30min']}],
       steps:function(){ return [{key:'coat',title:'Coating',desc:'Capture antibody binds to plate.'},{key:'block',title:'Blocking',desc:'Block to reduce background.'},{key:'detect',title:'Detection',desc:'Add detection antibody and substrate.'},{key:'read',title:'Read',desc:'Measure absorbance.'}]; },
       validate:function(sel){ if(sel.controls && sel.controls.includes('Positive') && sel.wash==='3 washes') return {status:'correct'}; if(sel.wash!=='3 washes') return {status:'suboptimal',hint:'Insufficient washes increase background.'}; return {status:'incorrect',hint:'Missing controls or detection reagents.'}; },
-      frame:function(sel,stepIndex){
+      frame:function(sel,stepIndex,subStep){ subStep = Number(subStep||0);
         const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const steps=this.steps(); const step=steps[stepIndex]||steps[steps.length-1];
         const washFactor = sel.wash && sel.wash.includes('3')?1: sel.wash && sel.wash.includes('1')?0.6:0.25;
         const baseSignal = sel.format==='Sandwich'?100: sel.format==='Indirect'?70:40;
-        const signal = Math.round(baseSignal * washFactor * (sel.controls && sel.controls.includes('Positive')?1:0.7));
+        // animate development during detect and read steps
+        let devProgress = 1;
+        if(stepIndex===2) devProgress = Math.min(1, (subStep+1)/6);
+        if(stepIndex===3) devProgress = Math.min(1, (subStep+1)/3);
+        const signal = Math.round(baseSignal * washFactor * (sel.controls && sel.controls.includes('Positive')?1:0.7) * devProgress);
         const intensity = Math.min(1, Math.max(0, signal/120));
         const color = `rgba(220, 38, 38, ${intensity})`;
         return `
@@ -321,6 +333,7 @@
             </svg>
           </div>`;
       },
+      timeline:function(sel,stepIndex){ if(stepIndex===2) return 6; if(stepIndex===3) return 3; return 1; },
       result:function(sel,validation){ const baseSignal = sel.format==='Sandwich'?100: sel.format==='Indirect'?70:40; const washFactor = sel.wash==='3 washes'?1: sel.wash==='1 wash'?0.6:0.25; const ctrl = sel.controls && sel.controls.includes('Positive'); const signal = Math.round(baseSignal * washFactor * (validation.status==='correct'?1:0.6)); return {grade: ctrl && validation.status==='correct'? 'success': (validation.status==='suboptimal'? 'partial':'fail'), signal}; },
       interpret:function(sel,validation,outcome){ const expected='A strong signal in positive wells and low background in negatives.'; const obs=`Signal: ${outcome.signal}`; const why = outcome.grade==='success'? 'Appropriate controls and wash steps produced clear signal.' : outcome.grade==='partial'? 'Some background due to insufficient washes.' : 'Poor controls/washing led to high background or low signal.'; return {result:outcome, expected, observed:obs, interpretation:why, improvements:'Improve wash steps, include appropriate controls, and verify antibody specificity.'}; }
     },
@@ -330,13 +343,16 @@
       fields:[{name:'sample',label:'Sample',type:'select',options:['Lysate A (HeLa)','Lysate B (E. coli)','Positive control','Negative control','Unknown sample']},{name:'gelPercent',label:'Gel %',type:'select',options:['8%','10%','12%']},{name:'transfer',label:'Transfer',type:'select',options:['Wet transfer','Semi-dry transfer']},{name:'primary',label:'Primary antibody',type:'select',options:['Anti-target 1:1000','Anti-target 1:5000']},{name:'loadingControl',label:'Loading control',type:'select',options:['Actin','Tubulin','None']}],
       steps:function(){ return [{key:'separate',title:'SDS-PAGE',desc:'Separate proteins by size.'},{key:'transfer',title:'Transfer',desc:'Transfer proteins to membrane.'},{key:'probe',title:'Probe',desc:'Probe with primary and secondary antibodies.'},{key:'detect',title:'Detect',desc:'Visualize bands.'}]; },
       validate:function(sel){ if(sel.loadingControl!=='None' && sel.transfer) return {status:'correct'}; if(sel.loadingControl==='None') return {status:'suboptimal',hint:'Add a loading control to allow lane comparisons.'}; return {status:'incorrect',hint:'Missing transfer or antibody selection.'}; },
-      frame:function(sel,stepIndex){
+      frame:function(sel,stepIndex,subStep){ subStep = Number(subStep||0);
         const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const stepsArr = this.steps(); const step = stepsArr[stepIndex]||stepsArr[stepsArr.length-1];
         const hasLoadingControl = sel.loadingControl && sel.loadingControl!=='None';
         const showTransfer = stepIndex>=1; // after separation
         const detectPhase = stepIndex>=2;
-        const bandOpacity = detectPhase? 0.95 : detectPhase===false && stepIndex===1? 0.6 : 0.25;
+        // animate band emergence during detect phase
+        let bandOpacity = 0.25;
+        if(detectPhase){ const progress = Math.min(1, (subStep+1)/6); bandOpacity = 0.25 + progress * 0.7; }
+        else if(stepIndex===1) bandOpacity = 0.6;
         const lanes = 4;
         const bands = Array.from({length:lanes}).map((_,i)=>`<rect x="${i*48 + 60}" y="${60 + i*6}" width="16" height="12" rx="2" fill="#0f172a" opacity="${bandOpacity}"></rect>`).join('');
         return `
@@ -356,6 +372,7 @@
             </svg>
           </div>`;
       },
+      timeline:function(sel,stepIndex){ if(stepIndex===0) return 4; if(stepIndex===1) return 4; if(stepIndex===2) return 6; if(stepIndex===3) return 6; return 1; },
       result:function(sel,validation){ const bands = sel.loadingControl==='None'? false: true; const success = validation.status==='correct' && bands; return {grade: success? 'success': (validation.status==='suboptimal' ? 'partial' : 'fail'), bands}; },
       interpret:function(sel,validation,outcome){ const expected='Distinct protein bands at expected sizes with loading control present.'; const obs = outcome.bands? 'Bands visible; loading control present.' : 'Weak signal or missing loading control.'; const why = outcome.grade==='success'? 'Good transfer and antibody specificity.' : outcome.grade==='partial'? 'Signal present but controls missing or weak.' : 'Transfer or antibody issues.'; return {result:outcome, expected, observed:obs, interpretation:why, improvements:'Ensure efficient transfer, use proper antibody dilutions and include loading controls.'}; }
     },
@@ -365,11 +382,18 @@
       fields:[{name:'sample',label:'Sample',type:'select',options:['Mixture A (3 components)','Mixture B (2 components)','Standard mix','Unknown sample']},{name:'mode',label:'Mode',type:'select',options:['Affinity','Ion exchange','Size exclusion','Reverse phase']},{name:'mobilePhase',label:'Mobile phase',type:'select',options:['Aqueous','Organic']},{name:'flowRate',label:'Flow rate',type:'select',options:['0.5','1.0','2.0']}],
       steps:function(){ return [{key:'inject',title:'Inject sample',desc:'Inject the sample onto the column.'},{key:'separate',title:'Separation',desc:'Components separate by affinity or size.'},{key:'detect',title:'Detection',desc:'Monitor detector output.'}]; },
       validate:function(sel){ if(sel.mode && sel.mobilePhase) return {status:'correct'}; return {status:'incorrect',hint:'Choose a chromatographic mode and mobile phase.'}; },
-      frame:function(sel,stepIndex){
+      frame:function(sel,stepIndex,subStep){ subStep = Number(subStep||0);
         const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const mode = sel.mode||'Mode'; const flow = sel.flowRate||'1.0';
-        const running = stepIndex>=1; const peaks = sel.mode==='Size exclusion'?3: sel.mode==='Affinity'?2: sel.mode==='Ion exchange'?3:2;
-        const peakHtml = Array.from({length:peaks}).map((_,i)=>`<path d="M ${20 + i*80} 120 C ${20 + i*80} ${80 - i*8} ${40 + i*80} ${40} ${60 + i*80} 120" stroke="#0ea5a3" stroke-width="3" fill="none" opacity="${running?1:0.25}"></path>`).join('');
+        const separating = stepIndex>=1; const peaks = sel.mode==='Size exclusion'?3: sel.mode==='Affinity'?2: sel.mode==='Ion exchange'?3:2;
+        // progress for separation animation
+        const sepProgress = separating? Math.min(1, (subStep+1)/12) : 0;
+        const peakHtml = Array.from({length:peaks}).map((_,i)=>{
+          const x0 = 20 + i*80;
+          const lift = Math.round((1 - Math.abs((i/(peaks-1||1)) - sepProgress)) * 40);
+          const opacity = sepProgress>0? 0.9 * (0.5 + sepProgress/2) : 0.25;
+          return `<path d="M ${x0} 120 C ${x0} ${80 - i*6 - lift} ${x0+20} ${40 - lift} ${x0+40} 120" stroke="#0ea5a3" stroke-width="3" fill="none" opacity="${opacity}"></path>`;
+        }).join('');
         return `
           <div class="vl-canvas vl-scene" role="img" aria-label="Chromatography column and detector">
             <svg viewBox="0 0 720 360" width="100%">
@@ -396,12 +420,27 @@
       fields:[{name:'sample',label:'Sample',type:'select',options:['E. coli smear','HeLa cells stained','Tissue section H&E','Unknown sample']},{name:'mode',label:'Mode',type:'select',options:['Brightfield','Fluorescence','Confocal']},{name:'stain',label:'Stain',type:'select',options:['None','H&E','DAPI']},{name:'objective',label:'Objective',type:'select',options:['10x','40x','100x']}],
       steps:function(){ return [{key:'prep',title:'Prepare slide',desc:'Mount sample and apply stain if needed.'},{key:'focus',title:'Focus and choose objective',desc:'Select objective and focus image.'},{key:'capture',title:'Capture image',desc:'Acquire and interpret image.'}]; },
       validate:function(sel){ if(sel.mode && sel.objective) return {status:'correct'}; return {status:'incorrect',hint:'Choose imaging mode and objective lens.'}; },
-      frame:function(sel,stepIndex){
+      frame:function(sel,stepIndex,subStep){ subStep = Number(subStep||0);
         const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const stain = sel.stain||'None'; const objective = sel.objective||'10x'; const mode = sel.mode||'Brightfield';
         const clarity = objective==='100x'? 'high': objective==='40x'? 'moderate':'low';
-        const zoom = objective==='100x'?1.6: objective==='40x'?1.2:1.0;
-        const fieldColor = stain==='DAPI'? '#c7d2fe' : stain==='H&E'? '#fde68a' : '#ffffff';
+        // animate zoom/progress based on subStep
+        let zoom = objective==='100x'?1.6: objective==='40x'?1.2:1.0;
+        let fieldColor = stain==='DAPI'? '#c7d2fe' : stain==='H&E'? '#fde68a' : '#ffffff';
+        // prep: show stain developing (stepIndex 0), focus: zoom in (1), capture: flash (2)
+        if(stepIndex===0){ // staining progress adjusts opacity
+          const prog = Math.min(1, (subStep+1)/3);
+          const alpha = 0.2 + prog * 0.6;
+          if(stain==='DAPI') fieldColor = `rgba(199,210,254,${alpha})`;
+          else if(stain==='H&E') fieldColor = `rgba(253,230,138,${alpha})`;
+          else fieldColor = `rgba(255,255,255,${alpha})`;
+        }
+        if(stepIndex===1){ // focusing increases zoom smoothly
+          const prog = Math.min(1, (subStep+1)/4);
+          zoom = zoom + prog * 0.3;
+        }
+        if(stepIndex===2){ // capture flash overlay (handled in SVG with opacity)
+        }
         return `
           <div class="vl-canvas vl-scene" role="img" aria-label="Microscope and slide">
             <svg viewBox="0 0 720 360" width="100%">
@@ -418,6 +457,7 @@
             </svg>
           </div>`;
       },
+      timeline:function(sel,stepIndex){ if(stepIndex===0) return 3; if(stepIndex===1) return 4; if(stepIndex===2) return 3; return 1; },
       result:function(sel,validation){ const clarity = sel.objective==='100x'? 'high': sel.objective==='40x'? 'moderate':'low'; const success = validation.status==='correct'; return {grade: success? 'success':'partial', clarity}; },
       interpret:function(sel,validation,outcome){ const expected='Image showing specimen structures appropriate for stain and magnification.'; const obs=`Image clarity: ${outcome.clarity}`; const why = outcome.grade==='success'? 'Appropriate mode and objective used.' : 'Change objective or staining for better contrast.'; return {result:outcome, expected, observed:obs, interpretation:why, improvements:'Choose stain and objective suited to target structures.'}; }
     }
