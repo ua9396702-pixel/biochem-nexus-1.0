@@ -42,7 +42,8 @@
         return {status:'incorrect',hint:'Annealing temperature poorly matched to primer Tm; expect non-specific bands or low yield.'};
       },
       // animation frame generator: returns SVG for each step reflecting selections
-      frame:function(sel,stepIndex){
+      frame:function(sel,stepIndex,subStep){
+        subStep = Number(subStep||0);
         const steps = this.steps(sel);
         const step = steps[stepIndex] || steps[steps.length-1];
         const sampleLabel = (sel.sample||'Sample').replace('(low copy)','').replace('(high copy)','').trim();
@@ -50,7 +51,6 @@
         const cycleText = `Cycles: ${sel.cycles||30}`;
         // stepIndex mapping: 0=prep (pipette),1=load (move tubes),2=cycles (thermocycler active),3=detect (show gel icon)
         const pipetteClass = stepIndex===0? 'pipette animate' : 'pipette';
-        const tubeY = stepIndex===1? 40 : 0; // move tube down to indicate loading
         // layout for tubes: responsive spacing within rack width (220)
         const rackWidth = 220;
         const tubeCount = 4;
@@ -58,29 +58,97 @@
         const rackPad = 12;
         const gap = Math.max(8, Math.floor((rackWidth - rackPad*2 - tubeWidth*tubeCount)/(tubeCount-1)));
         const tubeX = (i) => rackPad + i*(tubeWidth + gap);
+
+        // dynamic state per substep
+        let tubeY = stepIndex===1? 40 : 0; // base vertical move during load
+        const tubeOffsetX = [0,0,0,0];
+        let liquidHeights = [18,18,18,18];
+
+        // PREP: pipetting from sample (0) into mix (2)
+        if(stepIndex===0){
+          // substeps: 0 approach,1 tip enter,2 aspirate,3 move to mix,4 dispense
+          if(subStep>=2) liquidHeights[0] = Math.max(6, 18 - 8); // sample lowered
+          if(subStep>=3) liquidHeights[2] = Math.min(28, 18 + 8); // mix increased
+        }
+
+        // LOAD: move selected tube into cycler (simulate by offsetting tube 2)
+        if(stepIndex===1){
+          if(subStep>=1) tubeOffsetX[2] = 260; // moves to cycler area visually
+        }
+
+        // CYCLES: animate temperature phases and amplification progress
         const cyclerActive = stepIndex===2 ? true : false;
-        const thermColor = cyclerActive? '#fde68a' : '#e6eefc';
+        // thermColor will change per phase when cycling
+        let thermColor = cyclerActive? '#fde68a' : '#e6eefc';
+        let amplificationProgress = 0;
+        if(stepIndex===2){
+          const cycles = Math.max(1, Number(sel.cycles||30));
+          const displayCycles = Math.min(8, cycles);
+          const totalSub = displayCycles * 3; // denature, anneal, extend per display cycle
+          const s = Math.min(subStep, totalSub-1);
+          const currentCycle = Math.floor(s/3) + 1;
+          const phase = s % 3; // 0=denature,1=anneal,2=extend
+          if(phase===0) thermColor = '#fee2e2';
+          else if(phase===1) thermColor = '#bfdbfe';
+          else thermColor = '#bbf7d0';
+          amplificationProgress = Math.round((currentCycle / displayCycles) * 100);
+        }
+
+        // compute pipette position for prep step
+        let pipetteTX = 360, pipetteTY = 80;
+        if(stepIndex===0){
+          const positions = [ {x: tubeX(0)+20, y:40}, {x: tubeX(0)+20, y:60}, {x: tubeX(0)+20, y:50}, {x: tubeX(2)+20, y:50}, {x: tubeX(2)+20, y:60} ];
+          const pos = positions[Math.min(subStep, positions.length-1)];
+          pipetteTX = 60 + pos.x; pipetteTY = 30 + pos.y;
+        }
+
+        // helper to render tube groups with offsets and dynamic liquid
+        const tubeGroups = (function(){
+          return [0,1,2,3].map(i=>{
+            const h = liquidHeights[i];
+            const ly = 42 + (18 - h);
+            const ox = tubeOffsetX[i] || 0;
+            return `<g class="tube" transform="translate(${tubeX(i) + ox},${10 + tubeY})"><rect x="0" y="0" width="${tubeWidth}" height="72" rx="6" fill="#ffffff" stroke="#cbd5e1"></rect><rect class="tube-liquid" x="6" y="${ly}" width="${Math.max(12, tubeWidth-12)}" height="${h}" rx="3" fill="#dbeafe"></rect><g class="tube-label"><rect x="${-8}" y="78" width="${tubeWidth+16}" height="20" rx="4" fill="rgba(255,255,255,0.9)"></rect><text x="${tubeWidth/2}" y="92" font-size="10" fill="#475569" text-anchor="middle" style="pointer-events:none;white-space:pre-wrap">${i===0? sampleLabel : i===1? enzyme : 'Mix'}</text></g></g>`;
+          }).join('');
+        })();
+
+        // small amplification curve preview during cycles
+        let ampHtml = '';
+        if(stepIndex===2){
+          const pct = amplificationProgress; const points = [];
+          const displayCycles = Math.min(8, Math.max(1, Number(sel.cycles||30)));
+          for(let i=0;i<=displayCycles;i++){
+            const x = 40 + Math.round((i/displayCycles)*220);
+            const y = 120 - Math.round((Math.sin(i/displayCycles * Math.PI) * (pct/100) * 40));
+            points.push(`${i===0?'M':'L'} ${x} ${y}`);
+          }
+          const path = points.join(' ');
+          ampHtml = `<g transform="translate(20,140)"><text x="0" y="0" font-size="12" fill="#0f172a">Amplification progress: ${pct}%</text><path d="${path}" stroke="#059669" stroke-width="3" fill="none" stroke-linejoin="round" stroke-linecap="round"></path></g>`;
+        }
+
         return `
           <div class="vl-canvas vl-scene" role="img" aria-label="PCR bench and thermal cycler">
-            <svg viewBox="0 0 720 360" width="100%">
+            <svg viewBox="0 0 820 380" width="100%">
               <defs>
                 <linearGradient id="glass" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.9"/><stop offset="1" stop-color="#e6eef7" stop-opacity="0.9"/></linearGradient>
               </defs>
-              <rect x="0" y="0" width="720" height="360" fill="#ffffff"/>
+              <rect x="0" y="0" width="820" height="380" fill="#ffffff"/>
               <!-- lab bench -->
-              <g class="lab-bench" transform="translate(20,200)">
-                <rect x="0" y="0" width="680" height="140" rx="8" fill="url(#glass)" stroke="#e6eef7"></rect>
+              <g class="lab-bench" transform="translate(20,220)">
+                <rect x="0" y="0" width="760" height="140" rx="8" fill="url(#glass)" stroke="#e6eef7"></rect>
               </g>
               <!-- tube rack -->
               <g transform="translate(60,120)">
                 <rect x="0" y="0" width="220" height="100" rx="6" fill="#f3f4f6" stroke="#e6eef7"></rect>
-                ${[0,1,2,3].map((i)=>`<g class="tube" transform="translate(${tubeX(i)},${10 + tubeY})"><rect x="0" y="0" width="${tubeWidth}" height="72" rx="6" fill="#ffffff" stroke="#cbd5e1"></rect><rect class="tube-liquid" x="6" y="${42}" width="${Math.max(12, tubeWidth-12)}" height="${18}" rx="3" fill="#dbeafe"></rect><g class="tube-label"><rect x="${-8}" y="78" width="${tubeWidth+16}" height="20" rx="4" fill="rgba(255,255,255,0.9)"></rect><text x="${tubeWidth/2}" y="92" font-size="10" fill="#475569" text-anchor="middle" style="pointer-events:none;white-space:pre-wrap">${i===0? sampleLabel : i===1? enzyme : 'Mix'}</text></g></g>`).join('')}
+                ${tubeGroups}
               </g>
+
               <!-- pipette (animated during prep) -->
-              <g transform="translate(360,80)"><g class="${pipetteClass}" >
+              <g transform="translate(${pipetteTX},${pipetteTY})"><g class="${pipetteClass}">
                 <rect x="0" y="0" width="10" height="80" rx="4" fill="#111827"></rect>
                 <rect x="-6" y="-8" width="22" height="8" rx="3" fill="#94a3b8"></rect>
               </g></g>
+
               <!-- thermal cycler -->
               <g transform="translate(520,80)">
                 <rect x="0" y="0" width="160" height="120" rx="8" fill="${thermColor}" stroke="#c7d2fe"></rect>
@@ -88,10 +156,21 @@
                 <text x="8" y="105" font-size="12" fill="#0f172a">Thermal Cycler</text>
                 <text x="8" y="120" font-size="10" fill="#64748b">${cycleText}</text>
               </g>
+
               <!-- step label -->
               <g transform="translate(40,24)"><text x="0" y="0" font-size="14" fill="#0f172a">${step.title}</text><text x="0" y="18" font-size="12" fill="#64748b">${step.desc}</text></g>
+
+              ${ampHtml}
+
             </svg>
           </div>`;
+      },
+      timeline:function(sel,stepIndex){
+        // define substeps per main step for richer animations
+        if(stepIndex===0) return 5; // prep: approach, tip enter, aspirate, move, dispense
+        if(stepIndex===1) return 3; // load: pick, insert, close
+        if(stepIndex===2){ const cycles = Math.max(1, Number(sel.cycles||30)); const displayCycles = Math.min(8, cycles); return displayCycles * 3; } // cycles: denature/anneal/extend per displayed cycle
+        return 1;
       },
       result:function(sel,validation){
         // simple quantitative model: base yield depends on sample copy number and validation
