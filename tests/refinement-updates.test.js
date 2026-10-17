@@ -24,8 +24,8 @@ test('laboratory navigation groups all techniques under one menu and learning li
 
   const BN = context.window.BN;
   assert.ok(BN.nav.laboratory, 'laboratory navigation should be defined');
-  const labels = BN.nav.laboratory.map(([label]) => label);
-  assert.deepStrictEqual(labels, ['PCR', 'ELISA', 'Western Blot', 'Gel Electrophoresis', 'Spectrophotometry', 'Chromatography', 'Microscopy']);
+  const labels = Array.from(BN.nav.laboratory, ([label]) => label);
+  assert.deepStrictEqual(labels, ['Virtual Laboratory', 'PCR', 'ELISA', 'Western Blot', 'Gel Electrophoresis', 'Spectrophotometry', 'Chromatography', 'Microscopy']);
   assert.ok(BN.nav.learning.some(([label]) => label === 'Metabolism Map Strategy'), 'learning navigation should include the metabolism module');
 });
 
