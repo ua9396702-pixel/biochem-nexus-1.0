@@ -5,9 +5,9 @@
   }
   root.StudentWorkspace = api;
 })(typeof window !== 'undefined' ? window : globalThis, function () {
-  const STORAGE_KEY = 'bionexus.student.workspace.v1';
-  const AUTH_KEY = 'bionexus.student.auth.v1';
-  const RECENT_KEY = 'bionexus.student.recent.v1';
+  const STORAGE_KEY = 'BioChem Nexus.student.workspace.v1';
+  const AUTH_KEY = 'BioChem Nexus.student.auth.v1';
+  const RECENT_KEY = 'BioChem Nexus.student.recent.v1';
   const DEFAULT_MODULES = [
     { id: 'dna', title: 'DNA Explorer', href: 'molecular-biology/dna-explorer.html', category: 'Molecular Biology' },
     { id: 'protein', title: 'Protein Explorer', href: 'biochemistry/protein-explorer.html', category: 'Biochemistry' },
@@ -38,8 +38,8 @@
     return {
       user: {
         id: createId('user'),
-        name: name || 'BioNexus Student',
-        email: email || 'student@bionexus.edu',
+        name: name || 'BioChem Nexus Student',
+        email: email || 'student@BioChem Nexus.edu',
         joinedAt: new Date().toISOString(),
         rememberMe: false
       },
@@ -64,7 +64,7 @@
   }
 
   function normalizeProfile(profile) {
-    const base = createEmptyStudentProfile(profile?.user?.email || 'student@bionexus.edu', profile?.user?.name || 'BioNexus Student');
+    const base = createEmptyStudentProfile(profile?.user?.email || 'student@BioChem Nexus.edu', profile?.user?.name || 'BioChem Nexus Student');
     const next = { ...base, ...profile, user: { ...base.user, ...(profile?.user || {}) } };
     next.notes = Array.isArray(profile?.notes) ? profile.notes : [];
     next.folders = Array.isArray(profile?.folders) && profile.folders.length ? profile.folders : base.folders;
@@ -174,13 +174,25 @@
   function importNotesFromText(text, profile, payload = {}) {
     const parsed = String(text || '').split(/\n{2,}/).filter(Boolean);
     if (!parsed.length) return [];
+
+    const buildBody = (lines) => {
+      const normalized = lines.map((line) => line.trim()).filter(Boolean);
+      return normalized.slice(1).join('\n').trim() || normalized[0]?.replace(/^#\s*/, '').trim() || 'Imported note';
+    };
+
     const imported = parsed.map((entry, index) => {
       const lines = entry.split('\n').filter(Boolean);
-      const title = payload.title ? `${payload.title} ${index + 1}` : (lines[0] || `Imported note ${index + 1}`).replace(/^#\s*/, '').trim();
-      const body = lines.slice(1).join('\n').trim() || lines[0].replace(/^#\s*/, '').trim();
+      const baseTitle = (lines[0] || `Imported note`).replace(/^#\s*/, '').trim();
+      const title = payload.title ? payload.title : `${baseTitle}${index > 0 ? ` ${index + 1}` : ''}`;
+      let body = buildBody(lines);
+
+      if (payload.title && parsed.length > 1 && index === 0 && lines.length > 0) {
+        body = parsed.map((part) => part.trim()).filter(Boolean).join('\n\n');
+      }
+
       return createNote(profile, {
         title,
-        body: `<p>${(body || 'Imported note').replace(/\n/g, '</p><p>')}</p>`,
+        body: `<p>${body.replace(/\n{2,}/g, '</p><p>').replace(/\n/g, '</p><p>')}</p>`,
         folderId: payload.folderId || profile.folders[0]?.id || null,
         subjectId: payload.subjectId || null,
         pinned: Boolean(payload.pinned),
@@ -276,7 +288,7 @@
 
   function persistRecentVisit(pageTitle, href) {
     const profile = getStoredProfile();
-    const item = { id: createId('recent'), title: pageTitle || 'BioNexus page', href: href || '#', viewedAt: new Date().toISOString() };
+    const item = { id: createId('recent'), title: pageTitle || 'BioChem Nexus page', href: href || '#', viewedAt: new Date().toISOString() };
     const recent = [item, ...(profile.recentlyViewed || []).filter((entry) => entry.href !== item.href)].slice(0, 8);
     profile.recentlyViewed = recent;
     profile.progress.topicsStudied = profile.recentlyViewed.length;
@@ -444,7 +456,7 @@
               ${(profile.bookmarks || []).length ? bookmarkedResources.map((item) => `
                 <div class="study-card">
                   <strong>${escapeHtml(item.title)}</strong>
-                  <p class="muted">${escapeHtml(item.category || 'Saved from BioNexus')}</p>
+                  <p class="muted">${escapeHtml(item.category || 'Saved from BioChem Nexus')}</p>
                   <div class="workspace-pill-row">
                     <span class="pill">${escapeHtml(item.href || 'workspace')}</span>
                     <button class="pill-button small" type="button" data-action="remove-bookmark" data-bookmark-id="${item.id}">Remove</button>
@@ -516,10 +528,10 @@
             <div class="study-grid two-up">${recentItems.length ? recentItems.map((item) => `
               <div class="study-card">
                 <strong>${escapeHtml(item.title)}</strong>
-                <p class="muted">${escapeHtml(item.href || 'BioNexus page')}</p>
+                <p class="muted">${escapeHtml(item.href || 'BioChem Nexus page')}</p>
                 <a class="pill-button" href="${escapeHtml(item.href)}">Open</a>
               </div>
-            `).join('') : '<div class="empty-state"><p>Your recent modules will appear here as you explore BioNexus.</p></div>'}</div>
+            `).join('') : '<div class="empty-state"><p>Your recent modules will appear here as you explore BioChem Nexus.</p></div>'}</div>
           </div>
         </div>
       `,
@@ -1025,7 +1037,7 @@
           state.authModal = null;
           render();
         } else {
-          state.authModal = { mode: 'login', message: 'We could not find that account. Try signing up for a free BioNexus account.' };
+          state.authModal = { mode: 'login', message: 'We could not find that account. Try signing up for a free BioChem Nexus account.' };
           render();
         }
         return;

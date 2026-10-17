@@ -1,10 +1,111 @@
 (function(){
-  const root = document.documentElement;
-  const page = document.body.dataset.page || "home";
-  const kind = document.body.dataset.kind || "topic";
-  const depth = Number(document.body.dataset.depth || 0);
+  const globalOwner = typeof globalThis !== 'undefined' ? globalThis : (typeof window !== 'undefined' ? window : {});
+  const BN = globalOwner.BN || {};
+  globalOwner.BN = BN;
+
+  BN.topicPages = BN.topicPages || {};
+  BN.toolPages = BN.toolPages || {};
+  BN.learningPages = BN.learningPages || {};
+  BN.learningModulePages = BN.learningModulePages || {};
+  BN.glossaryTerms = BN.glossaryTerms || [
+    {term:'Allele', category:'Genetics', definition:'An alternative form of a gene.', simpleExplanation:'Different versions of the same gene.', biologicalSignificance:'Explains inherited variation and trait differences.', relatedTopics:[{label:'DNA Explorer', href:'molecular-biology/dna-explorer.html'},{label:'Gene Expression', href:'molecular-biology/gene-expression.html'}]},
+    {term:'Amino Acid', category:'Biochemistry', definition:'A building block of proteins.', simpleExplanation:'Amino acids link together to form proteins.', biologicalSignificance:'They form enzymes, structural proteins, and signaling molecules.', relatedTopics:[{label:'Protein Explorer', href:'biochemistry/protein-explorer.html'},{label:'Amino Acid Metabolism', href:'biochemistry/amino-acid-metabolism.html'}]},
+    {term:'ATP', category:'Cell Biology', definition:'Adenosine triphosphate is the cell’s main energy currency.', simpleExplanation:'Cells use ATP to power reactions.', biologicalSignificance:'It drives metabolism, transport, and movement.', relatedTopics:[{label:'Cellular Respiration', href:'biochemistry/cellular-respiration.html'},{label:'Protein Explorer', href:'biochemistry/protein-explorer.html'}]},
+    {term:'Chromatin', category:'Molecular Biology', definition:'DNA and histones packaged together in the nucleus.', simpleExplanation:'Chromatin is the packaged form of DNA.', biologicalSignificance:'It regulates how genes are accessed and expressed.', relatedTopics:[{label:'DNA Explorer', href:'molecular-biology/dna-explorer.html'},{label:'Gene Expression', href:'molecular-biology/gene-expression.html'}]},
+    {term:'Codon', category:'Genetics', definition:'A three-base RNA sequence that specifies an amino acid.', simpleExplanation:'Codons tell ribosomes which amino acid comes next.', biologicalSignificance:'They determine the protein sequence.', relatedTopics:[{label:'RNA Explorer', href:'molecular-biology/rna-explorer.html'},{label:'Protein Explorer', href:'biochemistry/protein-explorer.html'}]},
+    {term:'Cofactor', category:'Biochemistry', definition:'A non-protein helper required for enzyme activity.', simpleExplanation:'Some enzymes need cofactors to work.', biologicalSignificance:'They often support catalysis and metabolic control.', relatedTopics:[{label:'Enzyme Explorer', href:'biochemistry/enzyme-explorer.html'},{label:'Protein Explorer', href:'biochemistry/protein-explorer.html'}]},
+    {term:'CRISPR', category:'Molecular Biology', definition:'A genome-editing technology guided by RNA.', simpleExplanation:'CRISPR can target and edit specific DNA sequences.', biologicalSignificance:'It enables gene editing and functional genomics.', relatedTopics:[{label:'CRISPR Overview', href:'molecular-biology/crispr-overview.html'},{label:'DNA Repair', href:'molecular-biology/dna-repair.html'}]},
+    {term:'Denaturation', category:'Biochemistry', definition:'The loss of a molecule’s native structure.', simpleExplanation:'Denaturation disrupts the normal structure.', biologicalSignificance:'It is important in protein function and PCR.', relatedTopics:[{label:'Protein Explorer', href:'biochemistry/protein-explorer.html'},{label:'PCR', href:'laboratory/pcr.html'}]},
+    {term:'Elution', category:'Laboratory', definition:'The release of a bound molecule from a column.', simpleExplanation:'Elution separates the target from the stationary phase.', biologicalSignificance:'It is central to purification methods.', relatedTopics:[{label:'Chromatography', href:'laboratory/chromatography.html'},{label:'ELISA', href:'laboratory/elisa.html'}]},
+    {term:'Enzyme', category:'Biochemistry', definition:'A biological catalyst.', simpleExplanation:'Enzymes speed up chemical reactions in cells.', biologicalSignificance:'They regulate metabolism and biochemical control.', relatedTopics:[{label:'Enzyme Explorer', href:'biochemistry/enzyme-explorer.html'},{label:'Protein Explorer', href:'biochemistry/protein-explorer.html'}]},
+    {term:'Epigenetics', category:'Genetics', definition:'Changes in gene expression without changing the DNA sequence.', simpleExplanation:'The same DNA can be used differently in different cells.', biologicalSignificance:'It influences development and disease.', relatedTopics:[{label:'Gene Expression', href:'molecular-biology/gene-expression.html'},{label:'DNA Explorer', href:'molecular-biology/dna-explorer.html'}]},
+    {term:'Gene', category:'Molecular Biology', definition:'A unit of hereditary information in DNA.', simpleExplanation:'Genes encode instructions used by cells.', biologicalSignificance:'They determine traits and cellular function.', relatedTopics:[{label:'DNA Explorer', href:'molecular-biology/dna-explorer.html'},{label:'Gene Expression', href:'molecular-biology/gene-expression.html'}]},
+    {term:'Gluconeogenesis', category:'Biochemistry', definition:'Production of glucose from non-carbohydrate precursors.', simpleExplanation:'The body makes glucose when needed.', biologicalSignificance:'It maintains blood sugar during fasting.', relatedTopics:[{label:'Carbohydrate Metabolism', href:'biochemistry/carbohydrate-metabolism.html'},{label:'Cellular Respiration', href:'biochemistry/cellular-respiration.html'}]},
+    {term:'Glycolysis', category:'Biochemistry', definition:'Breakdown of glucose into pyruvate.', simpleExplanation:'A central pathway for extracting energy from glucose.', biologicalSignificance:'It produces ATP and metabolic intermediates.', relatedTopics:[{label:'Cellular Respiration', href:'biochemistry/cellular-respiration.html'},{label:'Metabolism Map Strategy', href:'learning/metabolism-map-strategy.html'}]},
+    {term:'Histone', category:'Molecular Biology', definition:'Protein that DNA wraps around.', simpleExplanation:'Histones help package DNA.', biologicalSignificance:'They influence gene accessibility and regulation.', relatedTopics:[{label:'DNA Explorer', href:'molecular-biology/dna-explorer.html'},{label:'Chromatin', href:'molecular-biology/dna-explorer.html'}]},
+    {term:'Lipid', category:'Biochemistry', definition:'A hydrophobic biomolecule such as fat or membrane component.', simpleExplanation:'Lipids store energy and build membranes.', biologicalSignificance:'They are essential for cell structure and signaling.', relatedTopics:[{label:'Lipid Metabolism', href:'biochemistry/lipid-metabolism.html'},{label:'Cellular Respiration', href:'biochemistry/cellular-respiration.html'}]},
+    {term:'Metabolism', category:'Biochemistry', definition:'The total set of biochemical reactions in an organism.', simpleExplanation:'Metabolism manages energy, molecules, and regulation.', biologicalSignificance:'It supports growth, adaptation, and survival.', relatedTopics:[{label:'Metabolism Map Strategy', href:'learning/metabolism-map-strategy.html'},{label:'Cellular Respiration', href:'biochemistry/cellular-respiration.html'}]},
+    {term:'Nucleotide', category:'Molecular Biology', definition:'The building block of DNA and RNA.', simpleExplanation:'Nucleotides assemble into nucleic acid polymers.', biologicalSignificance:'They store genetic information and energy.', relatedTopics:[{label:'DNA Explorer', href:'molecular-biology/dna-explorer.html'},{label:'RNA Explorer', href:'molecular-biology/rna-explorer.html'}]},
+    {term:'PCR', category:'Laboratory', definition:'Polymerase chain reaction for amplifying DNA.', simpleExplanation:'PCR copies a target DNA sequence many times.', biologicalSignificance:'It is foundational in diagnostics and molecular biology.', relatedTopics:[{label:'DNA Sequencing', href:'molecular-biology/dna-sequencing.html'},{label:'Gel Electrophoresis', href:'laboratory/gel-electrophoresis.html'}]},
+    {term:'Protein', category:'Biochemistry', definition:'A polymer of amino acids with a defined biological function.', simpleExplanation:'Proteins do most of the work in cells.', biologicalSignificance:'They carry out structure, catalysis, signaling, and transport.', relatedTopics:[{label:'Protein Explorer', href:'biochemistry/protein-explorer.html'},{label:'Enzyme Explorer', href:'biochemistry/enzyme-explorer.html'}]},
+    {term:'Replication', category:'Molecular Biology', definition:'Copying of DNA before a cell divides.', simpleExplanation:'Replication makes a second DNA copy.', biologicalSignificance:'It preserves genetic information across generations.', relatedTopics:[{label:'DNA Explorer', href:'molecular-biology/dna-explorer.html'},{label:'DNA Repair', href:'molecular-biology/dna-repair.html'}]}
+  ];
+
+  BN.nav = BN.nav || {
+    explore: [
+      ['DNA Explorer','molecular-biology/dna-explorer.html'],
+      ['RNA Explorer','molecular-biology/rna-explorer.html'],
+      ['Gene Expression','molecular-biology/gene-expression.html'],
+      ['Protein Explorer','biochemistry/protein-explorer.html'],
+      ['Enzyme Explorer','biochemistry/enzyme-explorer.html'],
+      ['Carbohydrate Metabolism','biochemistry/carbohydrate-metabolism.html'],
+      ['Cellular Respiration','biochemistry/cellular-respiration.html']
+    ],
+    exploreGroups: [
+      {title:'Molecular Biology', items:[['DNA Explorer','molecular-biology/dna-explorer.html'],['RNA Explorer','molecular-biology/rna-explorer.html'],['Gene Expression','molecular-biology/gene-expression.html']]},
+      {title:'Biochemistry', items:[['Protein Explorer','biochemistry/protein-explorer.html'],['Enzyme Explorer','biochemistry/enzyme-explorer.html']]},
+      {title:'Metabolic Pathways', items:[['Carbohydrate Metabolism','biochemistry/carbohydrate-metabolism.html'],['Lipid Metabolism','biochemistry/lipid-metabolism.html'],['Amino Acid Metabolism','biochemistry/amino-acid-metabolism.html'],['Cellular Respiration','biochemistry/cellular-respiration.html']]}
+    ],
+    laboratory: [
+      ['Virtual Laboratory','laboratory/virtual-lab.html'],
+      ['PCR','laboratory/pcr.html'],
+      ['ELISA','laboratory/elisa.html'],
+      ['Western Blot','laboratory/western-blot.html'],
+      ['Gel Electrophoresis','laboratory/gel-electrophoresis.html'],
+      ['Spectrophotometry','laboratory/spectrophotometry.html'],
+      ['Chromatography','laboratory/chromatography.html'],
+      ['Microscopy','laboratory/microscopy.html']
+    ],
+    tools: [
+      ['Primer Design Studio','tools/primer-design-studio.html'],
+      ['Molecular Weight Calculator','tools/molecular-weight-calculator.html'],
+      ['Dilution Calculator','tools/dilution-calculator.html'],
+      ['Buffer Calculator','tools/buffer-calculator.html'],
+      ['pH Calculator','tools/ph-calculator.html'],
+      ['Unit Converter','tools/unit-converter.html']
+    ],
+    learning: [
+      ['Study Notes','learning/study-notes.html'],
+      ['Metabolism Map Strategy','learning/metabolism-map-strategy.html'],
+      ['Scientific Glossary','learning/scientific-glossary.html'],
+      ['Visual Library','learning/visual-library.html']
+    ]
+  };
+
+  BN.learningPages = BN.learningPages || {
+    'scientific-glossary': {title:'Scientific Glossary', intro:'Definitions and explanations for core molecular biology and biochemistry terms.'},
+    'study-notes': {title:'Study Notes', intro:'Quick recap notes and revision ideas for key topics.'}
+  };
+  BN.learningModulePages = BN.learningModulePages || {
+    'metabolism-map-strategy': {
+      title:'Metabolism Map Strategy',
+      intro:'Use a pathway-first approach to navigate carbohydrate, lipid, and amino acid metabolism.',
+      sections:[
+        {title:'Introduction to Metabolism', body:'Metabolism is the total set of chemical reactions that sustain life.'},
+        {title:'Catabolism vs Anabolism', body:'Catabolic pathways break down fuel while anabolic pathways build molecules.'},
+        {title:'ATP and Energy Transfer', body:'ATP carries immediate energy for cellular work.'},
+        {title:'Carbohydrate and Energy Pathways', body:'Glycolysis and respiration connect carbon flow to ATP generation.'},
+        {title:'Lipid and Amino Acid Integration', body:'Fatty acids and amino acids feed into broader metabolic coordination.'},
+        {title:'Regulation and Clinical Relevance', body:'Hormones and enzymes coordinate metabolism in health and disease.'}
+      ],
+      keyTakeaways:['Metabolism is a network, not a list.','ATP and redox carriers link pathways.','Regulation is often more important than memorizing every intermediate.','Pathways connect directly to nutrition, physiology, and disease.','Hormones and tissue context determine pathway priorities.','Tissue and nutritional state influence which pathways are active.'],
+      glossary:['ATP','Metabolism','Catabolism','Anabolism','Gluconeogenesis','Pentose phosphate pathway','Oxidative phosphorylation','Urea cycle'],
+      recommendedResources:[['Lehninger Principles of Biochemistry','https://www.pearson.com/en-us/subject-catalog/p/lehninger-principles-of-biochemistry/P200000000049'],['Harper\'s Illustrated Biochemistry','https://shop.elsevier.com/books/harpers-illustrated-biochemistry/murray/978-0-323-78942-0'],['Biochemistry by Berg, Tymoczko, and Gatto','https://global.oup.com/academic/product/biochemistry-9781319114671'],['Medical Biochemistry by Baynes and Dominiczak','https://www.elsevier.com/books/medical-biochemistry/baynes/978-0-7234-3615-5']],
+      summary:'Metabolism becomes easier when students learn the major flow of carbon, energy, and reducing power across pathways rather than memorizing isolated steps.',
+      highlights:['Metabolic pathways are connected by shared intermediates and cofactors.','ATP, NADH, and NADPH are central currency and reducing power carriers.','Pathway regulation reflects cellular demand and hormone signaling.'],
+      steps:['Map the starting substrate and major products.','Identify key regulated steps and energy carriers.','Link the pathway to clinical and laboratory relevance.'],
+      clinical:'Metabolic mapping helps students interpret diabetes, mitochondrial disease, fasting states, enzyme deficiencies, and the biochemical basis of many common diseases.',
+      related:[['Carbohydrate Metabolism','biochemistry/carbohydrate-metabolism.html'],['Cellular Respiration','biochemistry/cellular-respiration.html'],['Lipid Metabolism','biochemistry/lipid-metabolism.html'],['Amino Acid Metabolism','biochemistry/amino-acid-metabolism.html']]
+    }
+  };
+
+  const doc = typeof document !== 'undefined' ? document : { documentElement: {}, body: { dataset: {} } };
+  const root = doc.documentElement || {};
+  const body = doc.body || { dataset: {} };
+  const page = body.dataset && body.dataset.page ? body.dataset.page : "home";
+  const kind = body.dataset && body.dataset.kind ? body.dataset.kind : "topic";
+  const depth = Number((body.dataset && body.dataset.depth) || 0);
   const base = depth ? "../".repeat(depth) : "";
-  const BN = window.BN || {};
 
   function href(path){ return base + path; }
   function icon(name){
@@ -22,7 +123,8 @@
   function stripBase(path){ return (path || '').replace(/^\.\//,'').replace(/^\.\.\//,'').replace(/\\/g,'/'); }
   function normalizeNavPath(path){ const value = stripBase(path || '').replace(/^\/+/, '').replace(/%20/g,' '); return value || 'index.html'; }
   function isCurrentNavPath(path){
-    const current = normalizeNavPath(window.location.pathname.split('/').pop() || 'index.html');
+    const currentPath = typeof window !== 'undefined' && window.location ? window.location.pathname : '';
+    const current = normalizeNavPath(currentPath.split('/').pop() || 'index.html');
     const target = normalizeNavPath(path);
     if (target === 'index.html') {
       return current === 'index.html' || current === '' || current === 'preview (1).html' || current === 'preview (1) - Copy.html';
@@ -44,7 +146,7 @@
     const exploreMarkup = exploreGroups.map(group => `<div class="dropdown-section"><h4>${group.title}</h4>${group.items.map(([t,u])=>`<a class="${isCurrentNavPath(u)?'active':''}" href="${href(u)}" ${isCurrentNavPath(u) ? 'aria-current="page"' : ''}>${t}</a>`).join('')}</div>`).join('');
     return `<header class="site-header">
       <div class="wrap nav">
-        <a class="brand" href="${href('index.html')}"><span class="brand-mark">${icon('dna')}</span>Bio<span>Nexus</span></a>
+        <a class="brand" href="${href('index.html')}"><span class="brand-mark">${icon('dna')}</span>BioChem <span>Nexus</span></a>
         <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle navigation" aria-controls="navLinks" aria-expanded="false"><span></span><span></span><span></span></button>
         <ul class="nav-links" id="navLinks" role="navigation" aria-label="Primary">
           <li class="mobile-nav-close-row"><button class="mobile-nav-close" id="mobileNavClose" type="button" aria-label="Close navigation"><span></span><span></span><span></span></button></li>
@@ -66,7 +168,7 @@
       <button class="back-to-top" type="button" aria-label="Back to top">↑</button>
       <div class="wrap">
         <div class="footer-signature">
-          <a class="brand footer-brand" href="${href('index.html')}"><span class="brand-mark">${icon('dna')}</span>Bio<span>Nexus</span></a>
+          <a class="brand footer-brand" href="${href('index.html')}"><span class="brand-mark">${icon('dna')}</span>BioChem <span>Nexus</span></a>
           <p>Interactive Biochemistry Learning Platform</p>
           <div class="footer-credit">
             <span>Designed &amp; Developed by</span>
@@ -75,7 +177,7 @@
             <span>Quaid-i-Azam University</span>
           </div>
         </div>
-        <div class="footer-bottom"><span>© 2026 BioNexus. All Rights Reserved.</span></div>
+        <div class="footer-bottom"><span>© 2026 BioChem Nexus. All Rights Reserved.</span></div>
       </div>
     </footer>`;
   }
@@ -279,7 +381,7 @@
       };
       animate();
     }catch(error){
-      console.warn("BioNexus 3D model could not be loaded", error);
+      console.warn("BioChem Nexus 3D model could not be loaded", error);
     }
   }
 
@@ -289,9 +391,9 @@
         <div class="wrap hero-grid">
           <div>
             <span class="eyebrow">Interactive life science education</span>
-            <h1>BioNexus turns complex science into clear, guided learning.</h1>
+            <h1>BioChem Nexus turns complex science into clear, guided learning.</h1>
             <p class="lead">Explore molecular biology, biochemistry, laboratory methods, and scientific tools through one cohesive, responsive platform.</p>
-            <div class="hero-actions"><a class="btn btn-primary" href="${href('molecular-biology/dna-explorer.html')}">Start with DNA</a><a class="btn btn-secondary" href="${href('tools/molecular-weight-calculator.html')}">Try a tool</a></div>
+            <div class="hero-actions"><a class="btn btn-primary" href="${href('molecular-biology/dna-explorer.html')}">Start with DNA</a><a class="btn btn-secondary" href="${href('tools/primer-design-studio.html')}">Design primers</a></div>
           </div>
           <div class="visual-card">
             <div class="helix-art">
@@ -315,7 +417,7 @@
       <section class="section">
         <div class="wrap grid grid-2">
           <div class="card">
-            <h3>Why BioNexus feels cohesive</h3>
+            <h3>Why BioChem Nexus feels cohesive</h3>
             <ul><li>Consistent navigation and footer across every page</li><li>Shared visual language for cards, buttons, and spacing</li><li>Interactive resources designed for revision and review</li></ul>
           </div>
           <div class="card">
@@ -362,6 +464,8 @@
   }
 
   function buildTopicStudyGuide(page, data){
+    const safeData = data || {};
+    const safeMisconceptions = Array.isArray(safeData.misconceptions) ? safeData.misconceptions : [];
     const guides = {
       'dna-explorer':{overview:["DNA stores hereditary information as a sequence of bases arranged in an antiparallel double helix.","Complementary base pairing allows accurate replication and transcription while preserving genomic information.","DNA structure explains stability, mutation, and the logic of sequencing, repair, and gene editing."],sections:[{title:"Definition",body:"DNA is a polymer of deoxyribonucleotides joined by phosphodiester bonds. Its base order carries the information required to build and regulate cells."},{title:"Structure",body:"The double helix has major and minor grooves, a consistent sugar-phosphate backbone, and complementary A-T and G-C pairing. These features influence protein binding and DNA accessibility."},{title:"Biological role",body:"DNA must be replicated before cell division, transcribed into RNA when a gene is active, and repaired when lesions arise. These processes are central to inheritance and cell identity."},{title:"Laboratory relevance",body:"DNA isolation, amplification, sequencing, and restriction analysis are foundational methods in biotechnology, forensics, diagnostics, and synthetic biology."}],examTips:["Always state 5′ and 3′ orientation when discussing replication or polymerase activity.","Link base pairing to hydrogen bonding and to the stability of the helix."],commonMistakes:["Confusing DNA with genes; many non-coding regions regulate expression and genome organization.","Assuming every mutation is harmful; many are neutral or context-dependent."],faq:[{q:"Why is DNA called an information molecule?",a:"Because the order of bases acts as a coded instruction set for RNA synthesis, protein production, and cellular regulation."},{q:"What is the difference between a gene and a genome?",a:"A gene is a segment with a defined functional role, while a genome is the complete DNA content of an organism or cell."}],related:[["DNA Repair","molecular-biology/dna-repair.html"],["DNA Sequencing","molecular-biology/dna-sequencing.html"],["Gene Expression","molecular-biology/gene-expression.html"]]},
       'rna-explorer':{overview:["RNA is a versatile nucleic acid that carries information, regulates gene expression, and can even catalyze reactions.","Messenger RNA carries coding information, transfer RNA delivers amino acids, and ribosomal RNA forms the core of the translation apparatus.","RNA structure is flexible, which allows it to interact with proteins, other RNAs, and small molecules in dynamic ways."],sections:[{title:"Definition",body:"RNA contains ribose sugar and uracil instead of thymine. Its single-stranded nature allows rapid folding and diverse functions."},{title:"Types",body:"mRNA carries codons, tRNA carries anticodons and amino acids, and rRNA provides structural and catalytic functions within ribosomes."},{title:"Regulation",body:"RNA processing, localization, stability, and translation efficiency strongly affect gene expression in healthy cells and disease states."},{title:"Applications",body:"RNA biology underpins mRNA therapeutics, diagnostics, viral assays, and transcriptome profiling."}],examTips:["Compare DNA and RNA using sugar, base composition, stability, and function.","Remember that not all RNA encodes protein."],commonMistakes:["Treating all RNA as messenger RNA.","Ignoring the role of RNA structure in regulatory control."],faq:[{q:"Why is RNA less stable than DNA?",a:"Its ribose sugar contains an extra hydroxyl group and it is often single-stranded, making it more chemically reactive."},{q:"What makes RNA suitable for regulation?",a:"Its flexible structure allows rapid turnover and interaction with proteins and other nucleic acids."}],related:[["Gene Expression","molecular-biology/gene-expression.html"],["Protein Explorer","biochemistry/protein-explorer.html"],["CRISPR Overview","molecular-biology/crispr-overview.html"]]},
@@ -383,7 +487,7 @@
       'spectrophotometry':{overview:["Spectrophotometry measures light absorbance to estimate concentration, reaction progress, or purity.","The Beer-Lambert law links absorbance to concentration under controlled conditions.","The technique is central to routine biochemical and clinical assays."],sections:[{title:"Principles",body:"A sample absorbs light at a selected wavelength, and the resulting absorbance is proportional to concentration within the valid range."},{title:"Applications",body:"It is used for nucleic acid quantification, protein assays, enzyme activity measurements, and microbial growth studies."},{title:"Experimental care",body:"A blank corrects background, and standards help establish a reliable curve."},{title:"Limitations",body:"Very high absorbance values may fall outside the linear range and require dilution or alternative methods."}],examTips:["Write A = εlc and define each variable clearly.","Explain why a blank is essential before reading a sample."],commonMistakes:["Using absorbance values beyond the linear range.","Forgetting that purity ratios only capture one aspect of sample quality."],faq:[{q:"What is a blank?",a:"A blank contains everything except the analyte and corrects the instrument and reagent background."},{q:"Why use a standard curve?",a:"It converts absorbance into an estimate of concentration under the same conditions."}],related:[["ELISA","laboratory/elisa.html"],["PCR","laboratory/pcr.html"],["Cellular Respiration","biochemistry/cellular-respiration.html"]]},
       'microscopy':{overview:["Microscopy allows students to connect molecular processes with cell structure and tissue organization.","Different modalities reveal different levels of detail, from whole cells to subcellular structures.","The choice of technique depends on magnification needs, contrast, fluorophore availability, and sample preparation."],sections:[{title:"Resolution",body:"Resolution is the ability to distinguish closely spaced structures, and it is often more important than simple magnification."},{title:"Modalities",body:"Brightfield, fluorescence, confocal, and electron microscopy each offer different strengths for biological questions."},{title:"Applications",body:"Microscopy supports pathology, cell biology, microbiology, developmental biology, and materials science."},{title:"Interpretation",body:"Images require careful controls because sample preparation, staining, and optics can influence appearance."}],examTips:["Compare light and electron microscopy by resolution, preparation, and use.","Explain the value of fluorescence for localizing specific molecules."],commonMistakes:["Equating more magnification with more useful information.","Ignoring the role of staining and sample preparation."],faq:[{q:"Why is fluorescence useful?",a:"It allows specific molecules or structures to be labeled and visualized in living or fixed samples."},{q:"What is the difference between magnification and resolution?",a:"Magnification enlarges an image, but resolution determines how much detail can actually be separated."}],related:[["Protein Explorer","biochemistry/protein-explorer.html"],["Spectrophotometry","laboratory/spectrophotometry.html"],["PCR","laboratory/pcr.html"]]}
     };
-    const guide = guides[page] || {overview:[`${data.title} is a core concept in modern life sciences. Review the main principles, laboratory relevance, and exam framing for this topic.`],sections:[{title:"Introduction",body:data.intro},{title:"Key relevance",body:data.importance},{title:"Lab importance",body:data.clinical},{title:"Exam focus",body:data.exam}],examTips:[data.exam],commonMistakes:data.misconceptions.slice(0,2),faq:[{q:"Why is this topic important?",a:data.importance},{q:"What should I revise first?",a:data.exam}],related:[["DNA Explorer","molecular-biology/dna-explorer.html"],["Protein Explorer","biochemistry/protein-explorer.html"]]};
+    const guide = guides[page] || {overview:[`${safeData.title || 'This topic'} is a core concept in modern life sciences. Review the main principles, laboratory relevance, and exam framing for this topic.`],sections:[{title:"Introduction",body:safeData.intro || 'An essential concept in life sciences.'},{title:"Key relevance",body:safeData.importance || 'This topic connects underlying mechanisms to real-world scientific practice.'},{title:"Lab importance",body:safeData.clinical || 'Laboratory work and diagnostics often depend on this concept.'},{title:"Exam focus",body:safeData.exam || 'Focus on the main sequence, regulation, and applications.'}],examTips:[safeData.exam || 'Explain the mechanism and connect it to a real example.'],commonMistakes:safeMisconceptions.slice(0,2),faq:[{q:"Why is this topic important?",a:safeData.importance || 'It links molecular mechanisms to real biological function.'},{q:"What should I revise first?",a:safeData.exam || 'Start with the process, then connect it to examples and applications.'}],related:[["DNA Explorer","molecular-biology/dna-explorer.html"],["Protein Explorer","biochemistry/protein-explorer.html"]]};
     const overviewList = guide.overview.map(item=>`<li>${item}</li>`).join("");
     const sectionList = guide.sections.map(section=>`<details class="study-detail"><summary>${section.title}</summary><div class="study-body"><p class="muted">${section.body}</p></div></details>`).join("");
     const examList = guide.examTips.map(item=>`<li>${item}</li>`).join("");
@@ -614,7 +718,7 @@
 
     const quickRevision = [
       `Definition: ${data.intro}`,
-      `Key enzymes or components: ${data.terms.slice(0,3).join(', ')}`,
+      `Key enzymes or components: ${(Array.isArray(data.terms) ? data.terms : []).slice(0,3).join(', ') || 'Core molecular components'}`,
       `Main pathway or process: follow the sequence from start to finish.`,
       `Most common exam focus: connect structure, mechanism, and application.`,
       `Clinical connection: relate the topic to disease, diagnosis, or biotechnology.`
@@ -624,36 +728,40 @@
   }
 
   function topic(data){
+    const safeData = data || {};
     const steps = ["Build the structure vocabulary","Identify the molecular players","Follow the process step by step","Connect mechanism to disease and research"];
-    const pageKey = (window.location.pathname.split('/').pop() || '').replace(/\.html$/,'');
-    const studyGuide = buildTopicStudyGuide(pageKey, data);
-    const expandedContent = buildExpandedTopicContent(pageKey, data);
+    const currentLocation = typeof window !== 'undefined' && window.location ? window.location.pathname : '';
+    const pageKey = (currentLocation.split('/').pop() || '').replace(/\.html$/,'');
+    const studyGuide = buildTopicStudyGuide(pageKey, safeData);
+    const expandedContent = buildExpandedTopicContent(pageKey, safeData);
     const learningObjectives = [
-      `Describe the core mechanism behind ${data.title}.`,
-      `Connect ${data.title} to one laboratory application and one clinical example.`,
+      `Describe the core mechanism behind ${safeData.title || 'this topic'}.`,
+      `Connect ${safeData.title || 'this topic'} to one laboratory application and one clinical example.`,
       `Explain the key terminology and the main exam focus for this topic.`
     ];
-    const keyConcepts = data.terms.slice(0,4).map(term=>`<li>${term}</li>`).join("");
+    const keyConcepts = (Array.isArray(safeData.terms) ? safeData.terms : []).slice(0,4).map(term=>`<li>${term}</li>`).join("");
+    const facts = Array.isArray(safeData.facts) ? safeData.facts : [];
+    const misconceptions = Array.isArray(safeData.misconceptions) ? safeData.misconceptions : [];
+    const refs = Array.isArray(safeData.refs) ? safeData.refs : [];
     return `${nav()}<main>
-      ${breadcrumbs('topic', data)}
-      <section class="hero"><div class="wrap hero-grid"><div><span class="eyebrow">${data.hub}</span><h1>${data.title}</h1><p class="lead">${data.intro}</p><div class="hero-actions"><a class="btn btn-primary" href="#interactive">Open Interactive Diagram</a><a class="btn btn-secondary" href="#references">References</a></div></div><div class="visual-card"><div class="helix-art"><div class="module-illustration large">${icon(data.icon || 'dna')}</div></div><span class="floating-label" style="top:22px;right:22px">Interactive model</span><span class="floating-label" style="bottom:24px;left:24px">Hover labels</span></div></div></section>
+      ${breadcrumbs('topic', safeData)}
+      <section class="hero"><div class="wrap hero-grid"><div><span class="eyebrow">${safeData.hub || 'Molecular Biology'}</span><h1>${safeData.title || 'Topic'}</h1><p class="lead">${safeData.intro || ''}</p><div class="hero-actions"><a class="btn btn-primary" href="#interactive">Open Interactive Diagram</a><a class="btn btn-secondary" href="#references">References</a></div></div><div class="visual-card"><div class="helix-art"><div class="module-illustration large">${icon(safeData.icon || 'dna')}</div></div><span class="floating-label" style="top:22px;right:22px">Interactive model</span><span class="floating-label" style="bottom:24px;left:24px">Hover labels</span></div></div></section>
       <section class="section" id="interactive"><div class="wrap learning-layout"><div class="grid">
-        <div class="panel diagram">${pageKey === 'dna-explorer' ? dna3dViewer() : diagram(data.diagram)}<div id="tipBox" class="result" role="status" aria-live="polite">Hover or tap a highlighted structure to see an explanation.</div></div>
+        <div class="panel diagram">${pageKey === 'dna-explorer' ? dna3dViewer() : diagram(safeData.diagram)}<div id="tipBox" class="result" role="status" aria-live="polite">Hover or tap a highlighted structure to see an explanation.</div></div>
         <div class="card"><h2>Learning Objectives</h2><ul class="study-list">${learningObjectives.map(item=>`<li>${item}</li>`).join("")}</ul></div>
         <div class="card"><h2>Key Concepts</h2><ul class="study-list">${keyConcepts}</ul></div>
-        <div class="card"><h2>Step-by-Step Learning</h2><div class="steps">${steps.map((s,i)=>`<div class="step"><div class="step-num">${i+1}</div><div><strong>${s}</strong><p class="muted">${i===0?data.importance:i===1?"Use the terminology list to name structures precisely.":i===2?"Animate the visual sequence and explain cause before outcome.":"Apply the topic to clinical and research contexts."}</p></div></div>`).join("")}</div></div>
+        <div class="card"><h2>Step-by-Step Learning</h2><div class="steps">${steps.map((s,i)=>`<div class="step"><div class="step-num">${i+1}</div><div><strong>${s}</strong><p class="muted">${i===0?safeData.importance || 'This topic explains the main mechanism and its relevance.':i===1?"Use the terminology list to name structures precisely.":i===2?"Animate the visual sequence and explain cause before outcome.":"Apply the topic to clinical and research contexts."}</p></div></div>`).join("")}</div></div>
         ${studyGuide}
         ${expandedContent}
-        <div class="grid grid-2"><div class="card"><h3>Clinical Relevance</h3><p class="muted">${data.clinical}</p></div><div class="card"><h3>Research Applications</h3><p class="muted">${data.research}</p></div></div>
-        <div class="grid grid-2"><div class="card"><h3>Interesting Facts</h3><ul>${data.facts.map(x=>`<li>${x}</li>`).join("")}</ul></div><div class="card"><h3>Common Misconceptions</h3><ul>${data.misconceptions.map(x=>`<li>${x}</li>`).join("")}</ul></div></div>
-        <div class="card"><h3>Exam Tip</h3><p class="muted">${data.exam}</p></div>
-        <div class="card" id="references"><h3>References</h3><ul>${data.refs.map(x=>`<li>${x}</li>`).join("")}</ul></div>
-      </div><aside class="sticky-panel grid"><div class="card"><h3>Why It Matters</h3><p class="muted">${data.importance}</p></div><div class="card"><h3>Scientific Terminology</h3><div class="pill-row">${data.terms.map(t=>`<span class="pill">${t}</span>`).join("")}</div></div></aside></div></section>
-    </main>${footer()}`;
+        <div class="grid grid-2"><div class="card"><h3>Clinical Relevance</h3><p class="muted">${safeData.clinical || 'This concept is important in research, diagnostics, and therapeutics.'}</p></div><div class="card"><h3>Research Applications</h3><p class="muted">${safeData.research || 'The topic informs experimental design and interpretation in modern life sciences.'}</p></div></div>
+        <div class="grid grid-2"><div class="card"><h3>Interesting Facts</h3><ul>${facts.map(x=>`<li>${x}</li>`).join("")}</ul></div><div class="card"><h3>Common Misconceptions</h3><ul>${misconceptions.map(x=>`<li>${x}</li>`).join("")}</ul></div></div>
+        <div class="card"><h3>Exam Tip</h3><p class="muted">${safeData.exam || 'Focus on mechanism, evidence, and real applications.'}</p></div>
+        <div class="card" id="references"><h3>References</h3><ul>${refs.map(x=>`<li>${x}</li>`).join("")}</ul></div>
+      </div><aside class="sticky-panel grid"><div class="card"><h3>Why It Matters</h3><p class="muted">${safeData.importance || 'Understanding this topic helps connect molecular detail to biological function.'}</p></div><div class="card"><h3>Scientific Terminology</h3><div class="pill-row">${(Array.isArray(safeData.terms) ? safeData.terms : []).map(t=>`<span class="pill">${t}</span>`).join("")}</div></div></aside></div></section></main>${footer()}`;
   }
 
   function tool(data){
-    const guidance = data.kind === 'mw' ? {title:'How to read the result', items:['Enter a DNA, RNA, or peptide sequence and compare the estimate with known molecular weights.','Use this as a quick check during problem solving, not as a replacement for exact analytical measurements.']} : data.kind === 'dilution' ? {title:'How to use this calculation', items:['Keep the concentration units consistent before solving the equation.','Use the result to plan stock preparation, sample setup, and dilution series.']} : data.kind === 'buffer' ? {title:'How to interpret the output', items:['Buffering is strongest when the target pH is close to the pKa.','The ratio is a useful estimate, but real buffer recipes depend on temperature, ionic strength, and activity corrections.']} : data.kind === 'ph' ? {title:'How to interpret the output', items:['pH reflects the activity of hydrogen ions in solution and is a useful quick estimate for many lab tasks.','Very dilute solutions may need more advanced treatment than the simple formula.']} : {title:'How to use the converter', items:['Confirm the units before converting to avoid dimensional errors.','Use this for routine planning and quick comparisons rather than final protocol design.']};
+    const guidance = data.kind === 'mw' ? {title:'How to read the result', items:['Enter a DNA, RNA, or peptide sequence and compare the estimate with known molecular weights.','Use this as a quick check during problem solving, not as a replacement for exact analytical measurements.']} : data.kind === 'dilution' ? {title:'How to use this calculation', items:['Keep the concentration units consistent before solving the equation.','Use the result to plan stock preparation, sample setup, and dilution series.']} : data.kind === 'buffer' ? {title:'How to interpret the output', items:['Buffering is strongest when the target pH is close to the pKa.','The ratio is a useful estimate, but real buffer recipes depend on temperature, ionic strength, and activity corrections.']} : data.kind === 'ph' ? {title:'How to interpret the output', items:['pH reflects the activity of hydrogen ions in solution and is a useful quick estimate for many lab tasks.','Very dilute solutions may need more advanced treatment than the simple formula.']} : data.kind === 'primer' ? {title:'Primer workflow guidance', items:['Search NCBI Gene or Nucleotide records for a real target before primer design.','Use a single sequence source throughout a design run; genomic DNA and transcript sequences are not interchangeable.','Local specificity checks are a quick screen and should be followed by a full BLAST or validated design tool for final assay decisions.']} : {title:'How to use the converter', items:['Confirm the units before converting to avoid dimensional errors.','Use this for routine planning and quick comparisons rather than final protocol design.']};
     return `${nav()}<main>${breadcrumbs('tool', data)}<section class="hero"><div class="wrap"><span class="eyebrow">Scientific Tools</span><h1>${data.title}</h1><p class="lead">${data.intro}</p></div></section>
       <section class="section"><div class="wrap toolbox"><div class="card form-card" id="toolForm"></div><aside class="grid"><div class="result" id="toolResult" role="status" aria-live="polite">Enter values to calculate a result.</div><div class="card"><h3>${guidance.title}</h3><ul>${guidance.items.map(t=>`<li>${t}</li>`).join("")}</ul></div><div class="card"><h3>Notes</h3><ul>${data.tips.map(t=>`<li>${t}</li>`).join("")}</ul></div></aside></div></section></main>${footer()}`;
   }
@@ -725,12 +833,12 @@
       {label:'Learning Resources', value:learningCount + 2},
       {label:'Educational Pages', value:educationalPages}
     ];
-    return `${nav()}<main>${breadcrumbs('portfolio', {title:'Portfolio'})}<section class="hero portfolio-hero"><div class="wrap hero-grid"><div><span class="eyebrow">Portfolio</span><h1>BioNexus</h1><p class="lead">An Interactive Educational Platform for Biotechnology, Biochemistry, Molecular Biology, Genetics, and Life Science Students.</p><p class="hero-note">BioNexus is an educational platform designed to simplify complex biological concepts through interactive learning experiences, scientific tools, visual explanations, and student-focused study resources. The goal is to make learning biology more engaging, accessible, and effective for university students.</p><div class="hero-actions"><a class="btn btn-primary" href="${href('learning/study-notes.html')}">Explore the learning hub</a><a class="btn btn-secondary" href="${href('molecular-biology/dna-explorer.html')}">Open a module</a></div></div><div class="visual-card portfolio-highlight"><div class="portfolio-badge">Version 1.0</div><h3>Why BioNexus exists</h3><p class="muted">The project was created to bridge the gap between advanced life-science content and the needs of undergraduate learners who want clear, interactive study pathways.</p><div class="pill-row"><span class="pill">Interactive learning</span><span class="pill">Student-focused design</span><span class="pill">Modern frontend experience</span></div></div></div></section><section class="section"><div class="wrap"><div class="section-head"><span class="eyebrow">About the project</span><h2>Built to make biological learning more engaging and practical.</h2></div><div class="grid grid-2"><div class="card"><h3>Purpose and impact</h3><p class="muted">BioNexus was created to address a common challenge in undergraduate education: complex biology topics are often taught through dense text and static resources. This platform brings those ideas into a more interactive, structured, and accessible format so students can engage with the science through guided modules, visual explanations, calculators, and study tools.</p></div><div class="card"><h3>How it helps students</h3><p class="muted">It supports learners by presenting core concepts in a clear learning flow, connecting related topics across molecular biology and biochemistry, and giving them practical features for revision and reflection. The combination of content, interactivity, and organization makes it easier to study efficiently and retain important ideas.</p></div></div></div></section><section class="section"><div class="wrap"><div class="section-head center"><span class="eyebrow">Key features</span><h2>Everything students need to explore science with clarity.</h2></div><div class="grid grid-3">${featureCards.map(card=>`<div class="card portfolio-feature-card"><h3>${card.title}</h3><p class="muted">${card.body}</p></div>`).join("")}</div></div></section><section class="section"><div class="wrap"><div class="section-head center"><span class="eyebrow">Technology stack</span><h2>Built with modern web tools and a clear educational focus.</h2></div><div class="grid grid-3">${stackGroups.map(group=>`<div class="card"><h3>${group.title}</h3><ul class="study-list">${group.items.map(item=>`<li>${item}</li>`).join("")}</ul></div>`).join("")}</div></div></section><section class="section"><div class="wrap"><div class="section-head center"><span class="eyebrow">Educational value</span><h2>Why BioNexus is more than a static website.</h2></div><div class="grid grid-3"><div class="card portfolio-feature-card"><h3>Guided study pathways</h3><p class="muted">Students can move from foundational concepts to laboratory application using a consistent structure that reduces cognitive overload.</p></div><div class="card portfolio-feature-card"><h3>Integrated revision tools</h3><p class="muted">Notes, bookmarks, glossary links, and progress tracking give learners a single place to manage their study workflow.</p></div><div class="card portfolio-feature-card"><h3>Scientifically grounded design</h3><p class="muted">Each module connects molecular mechanisms, real-world relevance, and practical examples so the experience remains educational rather than purely decorative.</p></div></div></div></section><section class="section"><div class="wrap"><div class="section-head center"><span class="eyebrow">Future roadmap</span><h2>Planned next steps for deeper learning experiences.</h2></div><div class="grid grid-3">${roadmap.map(item=>`<div class="card portfolio-roadmap-card"><h3>${item}</h3><p class="muted">A future-facing upgrade that expands interaction, personalization, and accessibility for learners.</p></div>`).join("")}</div></div></section><section class="section"><div class="wrap"><div class="grid grid-2"><div class="card"><span class="eyebrow">About the developer</span><h2>Umer Ali</h2><p class="muted">Undergraduate Biochemistry Student at Quaid-i-Azam University, pursuing a Bachelor of Science (BS) in Biochemistry.</p><blockquote class="portfolio-quote">“I believe that education becomes more meaningful when complex scientific concepts are presented in a way that is interactive, engaging, and easy to understand. BioNexus reflects my passion for combining biological sciences with modern web technology to create learning experiences that help students study more effectively and explore science with curiosity.”</blockquote></div><div class="card"><span class="eyebrow">Contact</span><div class="portfolio-contact-card"><div class="portfolio-icon">${icon('mail')}</div><div><h3>Email</h3><a href="mailto:umer69799@gmail.com">umer69799@gmail.com</a></div></div></div></div></div></section><section class="section"><div class="wrap"><div class="grid grid-2"><div class="card"><h3>Credits</h3><ul class="study-list"><li>Educational inspiration from standard undergraduate life science curricula.</li><li>Open-source tools and community resources used throughout the project.</li><li>Icons and design resources were selected to support the established BioNexus visual language.</li><li>BioNexus is intended for educational purposes and academic exploration.</li></ul></div><div class="card"><h3>Version</h3><div class="portfolio-version"><strong>BioNexus Version 1.0</strong><p>Interactive Educational Platform</p><p class="muted">2026 Release</p></div></div></div></div></section><section class="section"><div class="wrap"><div class="section-head center"><span class="eyebrow">What I learned</span><h2>Development strengthened both my technical and educational design skills.</h2></div><div class="card"><ul class="study-list portfolio-list">${learnings.map(item=>`<li>${item}</li>`).join("")}</ul></div></div></section><section class="section"><div class="wrap"><div class="section-head center"><span class="eyebrow">BioNexus by the numbers</span><h2>Real project metrics generated from the platform structure.</h2></div><div class="grid grid-4">${stats.map(stat=>`<div class="card portfolio-stat-card"><strong>${stat.value}</strong><span>${stat.label}</span></div>`).join("")}</div></div></section></main>${footer()}`;
+    return `${nav()}<main>${breadcrumbs('portfolio', {title:'Portfolio'})}<section class="hero portfolio-hero"><div class="wrap hero-grid"><div><span class="eyebrow">Portfolio</span><h1>BioChem Nexus</h1><p class="lead">An Interactive Educational Platform for Biotechnology, Biochemistry, Molecular Biology, Genetics, and Life Science Students.</p><p class="hero-note">BioChem Nexus is an educational platform designed to simplify complex biological concepts through interactive learning experiences, scientific tools, visual explanations, and student-focused study resources. The goal is to make learning biology more engaging, accessible, and effective for university students.</p><div class="hero-actions"><a class="btn btn-primary" href="${href('learning/study-notes.html')}">Explore the learning hub</a><a class="btn btn-secondary" href="${href('molecular-biology/dna-explorer.html')}">Open a module</a></div></div><div class="visual-card portfolio-highlight"><div class="portfolio-badge">Version 1.0</div><h3>Why BioChem Nexus exists</h3><p class="muted">The project was created to bridge the gap between advanced life-science content and the needs of undergraduate learners who want clear, interactive study pathways.</p><div class="pill-row"><span class="pill">Interactive learning</span><span class="pill">Student-focused design</span><span class="pill">Modern frontend experience</span></div></div></div></section><section class="section"><div class="wrap"><div class="section-head"><span class="eyebrow">About the project</span><h2>Built to make biological learning more engaging and practical.</h2></div><div class="grid grid-2"><div class="card"><h3>Purpose and impact</h3><p class="muted">BioChem Nexus was created to address a common challenge in undergraduate education: complex biology topics are often taught through dense text and static resources. This platform brings those ideas into a more interactive, structured, and accessible format so students can engage with the science through guided modules, visual explanations, calculators, and study tools.</p></div><div class="card"><h3>How it helps students</h3><p class="muted">It supports learners by presenting core concepts in a clear learning flow, connecting related topics across molecular biology and biochemistry, and giving them practical features for revision and reflection. The combination of content, interactivity, and organization makes it easier to study efficiently and retain important ideas.</p></div></div></div></section><section class="section"><div class="wrap"><div class="section-head center"><span class="eyebrow">Key features</span><h2>Everything students need to explore science with clarity.</h2></div><div class="grid grid-3">${featureCards.map(card=>`<div class="card portfolio-feature-card"><h3>${card.title}</h3><p class="muted">${card.body}</p></div>`).join("")}</div></div></section><section class="section"><div class="wrap"><div class="section-head center"><span class="eyebrow">Technology stack</span><h2>Built with modern web tools and a clear educational focus.</h2></div><div class="grid grid-3">${stackGroups.map(group=>`<div class="card"><h3>${group.title}</h3><ul class="study-list">${group.items.map(item=>`<li>${item}</li>`).join("")}</ul></div>`).join("")}</div></div></section><section class="section"><div class="wrap"><div class="section-head center"><span class="eyebrow">Educational value</span><h2>Why BioChem Nexus is more than a static website.</h2></div><div class="grid grid-3"><div class="card portfolio-feature-card"><h3>Guided study pathways</h3><p class="muted">Students can move from foundational concepts to laboratory application using a consistent structure that reduces cognitive overload.</p></div><div class="card portfolio-feature-card"><h3>Integrated revision tools</h3><p class="muted">Notes, bookmarks, glossary links, and progress tracking give learners a single place to manage their study workflow.</p></div><div class="card portfolio-feature-card"><h3>Scientifically grounded design</h3><p class="muted">Each module connects molecular mechanisms, real-world relevance, and practical examples so the experience remains educational rather than purely decorative.</p></div></div></div></section><section class="section"><div class="wrap"><div class="section-head center"><span class="eyebrow">Future roadmap</span><h2>Planned next steps for deeper learning experiences.</h2></div><div class="grid grid-3">${roadmap.map(item=>`<div class="card portfolio-roadmap-card"><h3>${item}</h3><p class="muted">A future-facing upgrade that expands interaction, personalization, and accessibility for learners.</p></div>`).join("")}</div></div></section><section class="section"><div class="wrap"><div class="grid grid-2"><div class="card"><span class="eyebrow">About the developer</span><h2>Umer Ali</h2><p class="muted">Undergraduate Biochemistry Student at Quaid-i-Azam University, pursuing a Bachelor of Science (BS) in Biochemistry.</p><blockquote class="portfolio-quote">“I believe that education becomes more meaningful when complex scientific concepts are presented in a way that is interactive, engaging, and easy to understand. BioChem Nexus reflects my passion for combining biological sciences with modern web technology to create learning experiences that help students study more effectively and explore science with curiosity.”</blockquote></div><div class="card"><span class="eyebrow">Contact</span><div class="portfolio-contact-card"><div class="portfolio-icon">${icon('mail')}</div><div><h3>Email</h3><a href="mailto:umer69799@gmail.com">umer69799@gmail.com</a></div></div></div></div></div></section><section class="section"><div class="wrap"><div class="grid grid-2"><div class="card"><h3>Credits</h3><ul class="study-list"><li>Educational inspiration from standard undergraduate life science curricula.</li><li>Open-source tools and community resources used throughout the project.</li><li>Icons and design resources were selected to support the established BioChem Nexus visual language.</li><li>BioChem Nexus is intended for educational purposes and academic exploration.</li></ul></div><div class="card"><h3>Version</h3><div class="portfolio-version"><strong>BioChem Nexus Version 1.0</strong><p>Interactive Educational Platform</p><p class="muted">2026 Release</p></div></div></div></div></section><section class="section"><div class="wrap"><div class="section-head center"><span class="eyebrow">What I learned</span><h2>Development strengthened both my technical and educational design skills.</h2></div><div class="card"><ul class="study-list portfolio-list">${learnings.map(item=>`<li>${item}</li>`).join("")}</ul></div></div></section><section class="section"><div class="wrap"><div class="section-head center"><span class="eyebrow">BioChem Nexus by the numbers</span><h2>Real project metrics generated from the platform structure.</h2></div><div class="grid grid-4">${stats.map(stat=>`<div class="card portfolio-stat-card"><strong>${stat.value}</strong><span>${stat.label}</span></div>`).join("")}</div></div></section></main>${footer()}`;
   }
 
   function about(){
-    const cards=[{title:"Profile",body:"BioNexus is a portfolio-quality educational platform that brings biochemistry and molecular biology together through polished, interactive study pathways."},{title:"Mission",body:"The project aims to make advanced scientific concepts easier to explore through guided modules, calculators, simulations, and revision tools."},{title:"Learning Design",body:"Each page follows a shared structure so learners can move from concept to application without losing orientation or context."},{title:"Technical Approach",body:"The interface is built with reusable HTML, CSS, and JavaScript so content remains modular, maintainable, and easy to evolve."},{title:"Student Experience",body:"Students can study concepts, save notes, bookmark modules, review glossary terms, and track their revision progress in one place."},{title:"Portfolio Value",body:"The site demonstrates strong frontend engineering, accessibility-minded UI work, and thoughtful educational content design."}];
-    return `${nav()}<main>${breadcrumbs('about', {title:'About BioNexus'})}<section class="hero"><div class="wrap hero-grid"><div><span class="eyebrow">Portfolio</span><h1>About BioNexus</h1><p class="lead">A professional educational platform built to make life science learning more interactive, structured, and memorable.</p></div><div class="visual-card">${diagram("protein")}</div></div></section><section class="section"><div class="wrap grid grid-3">${cards.map(c=>`<div class="card"><h3>${c.title}</h3><p class="muted">${c.body}</p></div>`).join("")}</div></section></main>${footer()}`;
+    const cards=[{title:"Profile",body:"BioChem Nexus is a portfolio-quality educational platform that brings biochemistry and molecular biology together through polished, interactive study pathways."},{title:"Mission",body:"The project aims to make advanced scientific concepts easier to explore through guided modules, calculators, simulations, and revision tools."},{title:"Learning Design",body:"Each page follows a shared structure so learners can move from concept to application without losing orientation or context."},{title:"Technical Approach",body:"The interface is built with reusable HTML, CSS, and JavaScript so content remains modular, maintainable, and easy to evolve."},{title:"Student Experience",body:"Students can study concepts, save notes, bookmark modules, review glossary terms, and track their revision progress in one place."},{title:"Portfolio Value",body:"The site demonstrates strong frontend engineering, accessibility-minded UI work, and thoughtful educational content design."}];
+    return `${nav()}<main>${breadcrumbs('about', {title:'About BioChem Nexus'})}<section class="hero"><div class="wrap hero-grid"><div><span class="eyebrow">Portfolio</span><h1>About BioChem Nexus</h1><p class="lead">A professional educational platform built to make life science learning more interactive, structured, and memorable.</p></div><div class="visual-card">${diagram("protein")}</div></div></section><section class="section"><div class="wrap grid grid-3">${cards.map(c=>`<div class="card"><h3>${c.title}</h3><p class="muted">${c.body}</p></div>`).join("")}</div></section></main>${footer()}`;
   }
 
   function studentWorkspacePage(){
@@ -742,11 +850,11 @@
       const description = item.description || 'Open the related module or use this as a revision prompt.';
       return `<a class="card learning-card" href="${target}"><div class="module-illustration">${icon(["dna","protein","lab","calc","book"][Math.abs(title.split('').reduce((sum,char)=>sum + char.charCodeAt(0),0)) % 5])}</div><h3>${title}</h3><p class="muted">${description}</p></a>`;
     }).join("");
-    return `${nav()}<main><section class="section"><div class="wrap"><div class="section-head"><span class="eyebrow">Learning Center</span><h2>Study modules and revision pathways</h2><p>Choose a module card below to open the matching BioNexus learning page.</p></div><div class="grid grid-3">${cards}</div><div id="student-workspace-root"></div></div></section></main>${footer()}`;
+    return `${nav()}<main><section class="section"><div class="wrap"><div class="section-head"><span class="eyebrow">Learning Center</span><h2>Study modules and revision pathways</h2><p>Choose a module card below to open the matching BioChem Nexus learning page.</p></div><div class="grid grid-3">${cards}</div><div id="student-workspace-root"></div></div></section></main>${footer()}`;
   }
 
   function contact(){
-    return `${nav()}<main>${breadcrumbs('contact', {title:'Contact'})}<section class="hero"><div class="wrap"><span class="eyebrow">Contact</span><h1>Contact</h1><p class="lead">For portfolio inquiries, collaboration ideas, and educational feedback, reach out through the form below.</p></div></section><section class="section"><div class="wrap toolBox toolbox"><form class="card form-card" id="contactForm" action="https://formsubmit.co/ajax/umer69799@gmail.com" method="POST" novalidate><input type="hidden" name="_subject" value="New BioNexus contact message"><input type="hidden" name="_template" value="table"><input type="hidden" name="_captcha" value="false"><label>Name</label><input id="contactName" name="name" placeholder="Your name" aria-label="Your name" autocomplete="name" required minlength="2"><label>Email</label><input id="contactEmail" name="email" placeholder="your@email.com" type="email" aria-label="Email address" autocomplete="email" required><label>Message</label><textarea id="contactMessage" name="message" rows="6" placeholder="Write your message" aria-label="Message" required minlength="10"></textarea><button class="btn btn-primary" type="submit">Send Message</button><div class="result" id="contactResult" role="status" aria-live="polite" hidden></div></form><aside class="contact-list"><div class="contact-item"><strong>Location</strong><p class="muted">Available for remote collaboration and portfolio review.</p></div><div class="contact-item"><strong>Email</strong><p class="muted"><a href="mailto:umer69799@gmail.com">umer69799@gmail.com</a></p></div><div class="contact-item"><strong>GitHub</strong><p class="muted"><a href="https://github.com/umer69799" target="_blank" rel="noreferrer">Open source and project work</a></p></div><div class="contact-item"><strong>LinkedIn</strong><p class="muted"><a href="https://www.linkedin.com/search/results/people/?keywords=Umer%20Ali%20Quaid-i-Azam%20University%20Biochemistry" target="_blank" rel="noreferrer">Professional profile and background</a></p></div></aside></div></section></main>${footer()}`;
+    return `${nav()}<main>${breadcrumbs('contact', {title:'Contact'})}<section class="hero"><div class="wrap"><span class="eyebrow">Contact</span><h1>Contact</h1><p class="lead">For portfolio inquiries, collaboration ideas, and educational feedback, reach out through the form below.</p></div></section><section class="section"><div class="wrap toolBox toolbox"><form class="card form-card" id="contactForm" action="https://formsubmit.co/ajax/umer69799@gmail.com" method="POST" novalidate><input type="hidden" name="_subject" value="New BioChem Nexus contact message"><input type="hidden" name="_template" value="table"><input type="hidden" name="_captcha" value="false"><label>Name</label><input id="contactName" name="name" placeholder="Your name" aria-label="Your name" autocomplete="name" required minlength="2"><label>Email</label><input id="contactEmail" name="email" placeholder="your@email.com" type="email" aria-label="Email address" autocomplete="email" required><label>Message</label><textarea id="contactMessage" name="message" rows="6" placeholder="Write your message" aria-label="Message" required minlength="10"></textarea><button class="btn btn-primary" type="submit">Send Message</button><div class="result" id="contactResult" role="status" aria-live="polite" hidden></div></form><aside class="contact-list"><div class="contact-item"><strong>Location</strong><p class="muted">Available for remote collaboration and portfolio review.</p></div><div class="contact-item"><strong>Email</strong><p class="muted"><a href="mailto:umer69799@gmail.com">umer69799@gmail.com</a></p></div><div class="contact-item"><strong>GitHub</strong><p class="muted"><a href="https://github.com/umer69799" target="_blank" rel="noreferrer">Open source and project work</a></p></div><div class="contact-item"><strong>LinkedIn</strong><p class="muted"><a href="https://www.linkedin.com/search/results/people/?keywords=Umer%20Ali%20Quaid-i-Azam%20University%20Biochemistry" target="_blank" rel="noreferrer">Professional profile and background</a></p></div></aside></div></section></main>${footer()}`;
   }
 
   function setupContactForm(){
@@ -815,6 +923,80 @@
     if(data.kind==="buffer") f.innerHTML = `<label>Target pH</label><input id="ph" type="number" step="any"><label>pKa</label><input id="pka" type="number" step="any"><label>Total concentration</label><input id="ct" type="number" step="any"><button class="btn btn-primary" id="calc" type="button">Calculate Ratio</button>`;
     if(data.kind==="ph") f.innerHTML = `<label>[H+] concentration (mol/L)</label><input id="h" type="number" step="any"><button class="btn btn-primary" id="calc" type="button">Calculate pH</button>`;
     if(data.kind==="unit") f.innerHTML = `<label>Value</label><input id="val" type="number" step="any"><label>From</label><select id="from"><option value="mg">mg</option><option value="g">g</option><option value="ug">ug</option><option value="ml">mL</option><option value="l">L</option><option value="ul">uL</option></select><label>To</label><select id="to"><option value="g">g</option><option value="mg">mg</option><option value="ug">ug</option><option value="l">L</option><option value="ml">mL</option><option value="ul">uL</option></select><button class="btn btn-primary" id="calc" type="button">Convert</button>`;
+    if(data.kind==="primer") {
+      f.innerHTML = `
+        <div class="primer-studio">
+          <div class="primer-toolbar">
+            <label>NCBI search query</label>
+            <div class="primer-search-row">
+              <input id="primerQuery" type="text" placeholder="TP53, BRCA1, GAPDH, NM_000546, H. sapiens" />
+              <button class="btn btn-primary" id="primerSearchBtn" type="button">Search NCBI</button>
+            </div>
+            <div class="primer-filter-row">
+              <label>Search mode</label>
+              <select id="primerSearchMode">
+                <option value="gene">Gene / keyword / organism</option>
+                <option value="accession">Accession / sequence ID</option>
+              </select>
+              <label>Organism</label>
+              <input id="primerOrganism" type="text" placeholder="Optional species filter" />
+            </div>
+          </div>
+          <div id="primerSearchStatus" class="primer-status">Search NCBI Gene and Nucleotide records for real targets.</div>
+          <div id="primerResultList" class="primer-results"></div>
+          <div class="primer-divider"></div>
+          <div class="primer-sequence-panel">
+            <div class="primer-panel-header">
+              <h3>Selected target sequence</h3>
+              <button class="btn btn-secondary" id="primerUsePaste" type="button">Paste sequence manually</button>
+            </div>
+            <div id="primerSelectedInfo" class="primer-selected-info">No target selected yet. Use an NCBI result or paste a template manually.</div>
+            <label>DNA template</label>
+            <textarea id="primerSequenceInput" rows="8" placeholder=">seq1\nATGCGTACGTG..."> </textarea>
+            <div class="primer-sequence-meta">
+              <span id="primerLengthReadout">Length: 0 nt</span>
+              <span id="primerGcReadout">GC: 0%</span>
+            </div>
+          </div>
+          <div class="primer-advanced">
+            <div class="primer-grid">
+              <label>Min length <input id="primerMinLen" type="number" min="14" max="40" value="18" /></label>
+              <label>Opt length <input id="primerOptLen" type="number" min="18" max="35" value="22" /></label>
+              <label>Max length <input id="primerMaxLen" type="number" min="18" max="40" value="27" /></label>
+              <label>Min Tm <input id="primerMinTm" type="number" step="0.1" min="45" max="80" value="58" /></label>
+              <label>Opt Tm <input id="primerOptTm" type="number" step="0.1" min="50" max="80" value="62" /></label>
+              <label>Max Tm <input id="primerMaxTm" type="number" step="0.1" min="55" max="90" value="68" /></label>
+              <label>GC min % <input id="primerGcMin" type="number" step="1" min="20" max="90" value="40" /></label>
+              <label>GC max % <input id="primerGcMax" type="number" step="1" min="20" max="90" value="65" /></label>
+              <label>Min product size <input id="primerMinProduct" type="number" min="50" max="5000" value="120" /></label>
+              <label>Max product size <input id="primerMaxProduct" type="number" min="80" max="5000" value="500" /></label>
+              <label>Candidate pairs <input id="primerPairCount" type="number" min="1" max="10" value="3" /></label>
+            </div>
+          </div>
+          <div class="primer-actions">
+            <button class="btn btn-primary" id="primerDesignBtn" type="button">Design primer pairs</button>
+            <button class="btn btn-secondary" id="primerClearBtn" type="button">Clear template</button>
+          </div>
+          <div id="primerDesignStatus" class="primer-status"></div>
+          <div id="primerCandidates" class="primer-candidates"></div>
+        </div>
+      `;
+      const query = document.getElementById("primerQuery");
+      document.getElementById("primerSearchBtn").addEventListener("click", ()=>searchNcbiRecords());
+      document.getElementById("primerDesignBtn").addEventListener("click", ()=>designPrimerCandidates());
+      document.getElementById("primerClearBtn").addEventListener("click", ()=>clearPrimerTemplate());
+      document.getElementById("primerUsePaste").addEventListener("click", ()=>{
+        const input = document.getElementById("primerSequenceInput");
+        input.focus();
+        input.scrollIntoView({behavior:"smooth", block:"nearest"});
+      });
+      const sequenceInput = document.getElementById("primerSequenceInput");
+      sequenceInput.addEventListener("input", updatePrimerReadouts);
+      updatePrimerReadouts();
+      query.addEventListener("keydown", (event)=>{ if(event.key === "Enter"){ searchNcbiRecords(); } });
+      setDefaultPrimerTemplate();
+      return;
+    }
     document.getElementById("calc").addEventListener("click",()=>{
       try{
         if(data.kind==="mw"){
@@ -849,6 +1031,262 @@
     });
   }
 
+  function normalizePrimerSequence(raw){
+    const text = String(raw || "").replace(/>.*\n/g, "").replace(/[^ACGTURYKMSWBDHVN]/gi, "").toUpperCase();
+    return text;
+  }
+
+  function updatePrimerReadouts(){
+    const input = document.getElementById("primerSequenceInput");
+    if(!input) return;
+    const seq = normalizePrimerSequence(input.value);
+    const length = seq.length;
+    const gc = length ? ((seq.match(/[GC]/g) || []).length / length) * 100 : 0;
+    document.getElementById("primerLengthReadout").textContent = `Length: ${length} nt`;
+    document.getElementById("primerGcReadout").textContent = `GC: ${gc.toFixed(1)}%`;
+  }
+
+  function clearPrimerTemplate(){
+    const input = document.getElementById("primerSequenceInput");
+    const status = document.getElementById("primerDesignStatus");
+    const selectedInfo = document.getElementById("primerSelectedInfo");
+    if(input) input.value = "";
+    if(status) status.textContent = "Sequence template cleared.";
+    if(selectedInfo) selectedInfo.textContent = "No target selected yet. Use an NCBI result or paste a template manually.";
+    updatePrimerReadouts();
+  }
+
+  function setDefaultPrimerTemplate(){
+    const input = document.getElementById("primerSequenceInput");
+    if(input && !input.value.trim()) {
+      input.value = `>Example: human GAPDH\nATGGCCTCCGTGTTCCTACCTGACTACACTCAGGACCACAGTCCATGCCATCACTGCCACCCAGAAGACTGTGGATGGCCCCTCTGGGAAGGTGAAGGTCGGAGTCAACGGATTTGGTCGTATTGGGCGCCTGGTCACCAGGGCTGCTTTTAACTCTGGTAAAGTGGATATTGTTGCCATCAATGACCCCTTCATTGACCTCAACTACATGGTTTACATGTTCCAATATGATTCCACCCATGGCAAATTCCATGGCACCGTCAAGGCTGAGAACGGGAAGCTTGTCATCAATGGAAATCCCATCACCATCTTCCAGGAGCGAGATCCCTCCAAAATCAAGTGGGGCGATGCTGGCGCTGAGTACGTCGTGGAGTCCACTGGCGTCTTCACCACCATGGAGAAGGCTGGGGCTCATTTGCAGGGGGGAGCCAAAAGGGTCATCATCTCTGCCCCCCTGCTGATGCCCCCATGTTCGTCATGGGTGTGAACCATGAGAAATATGACAACAGCCTCAAGATCATCAGCAATGCCTCCTGCACCACCAACTGCTTAGCACCCCTGGCCAAGGTCATCCATGACAAC\n`;
+      updatePrimerReadouts();
+    }
+  }
+
+  function searchNcbiRecords(){
+    const queryField = document.getElementById("primerQuery");
+    const mode = document.getElementById("primerSearchMode").value;
+    const status = document.getElementById("primerSearchStatus");
+    const organism = document.getElementById("primerOrganism").value.trim();
+    const searchTerm = (queryField.value || "TP53").trim();
+    const effectiveTerm = mode === "accession" ? searchTerm : `${searchTerm}${organism ? ` AND ${organism}` : ""}`;
+    if(!effectiveTerm){
+      status.textContent = "Enter a gene symbol, keyword, organism, or accession to search NCBI.";
+      return;
+    }
+    status.textContent = "Querying NCBI Gene and Nucleotide databases...";
+    const db = mode === "accession" && /^(?:[A-Z]{1,2}_\d+|NC_|NG_|NM_|NP_|NR_|NT_|NW_|NZ_|XM_|XR_|AP_|AC_)/i.test(searchTerm) ? "nuccore" : "gene";
+    const url = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=${db}&retmode=json&retmax=8&term=${encodeURIComponent(effectiveTerm)}`;
+    fetch(url)
+      .then(response => response.ok ? response.json() : Promise.reject(new Error("NCBI query failed.")))
+      .then(data => {
+        const ids = (data.esearchresult && data.esearchresult.idlist) || [];
+        if(!ids.length){
+          throw new Error("No matching records were returned for that search.");
+        }
+        const resultList = document.getElementById("primerResultList");
+        const summaryUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=${db}&retmode=json&id=${ids.join(',')}`;
+        return fetch(summaryUrl).then(res => res.ok ? res.json() : Promise.reject(new Error("NCBI summary lookup failed."))).then(summary => {
+          const records = summary.result && summary.result.uids ? summary.result.uids.map((uid) => ({uid, entry: summary.result[uid]})).filter(item => item.entry) : [];
+          resultList.innerHTML = records.map(({entry}) => {
+            const title = entry.title || entry.name || "Record";
+            const organism = entry.organism || entry.taxname || "Unknown organism";
+            const symbol = entry.genes && entry.genes[0] ? entry.genes[0].name || entry.genes[0].symbol || "" : "";
+            const geneId = entry.uid || entry.geneid || "";
+            const description = entry.summary || entry.description || entry.caption || "NCBI record available";
+            return `<button class="primer-result-item" data-gene-id="${geneId}" data-record-title="${title}" data-organism="${organism}" data-symbol="${symbol}" data-description="${description}" type="button"><strong>${symbol || title}</strong><span>${organism}</span><small>${geneId || entry.uid}</small><p>${description}</p></button>`;
+          }).join("");
+          resultList.querySelectorAll(".primer-result-item").forEach(button => {
+            button.addEventListener("click", () => {
+              const geneId = button.dataset.geneId;
+              selectedNcbiRecord = {
+                geneId,
+                title: button.dataset.recordTitle,
+                organism: button.dataset.organism,
+                symbol: button.dataset.symbol,
+                description: button.dataset.description
+              };
+              document.getElementById("primerSelectedInfo").textContent = `${button.dataset.symbol || button.dataset.recordTitle} • ${button.dataset.organism || "Unknown organism"}`;
+              document.getElementById("primerSearchStatus").textContent = `Selected: ${button.dataset.symbol || button.dataset.recordTitle}. Fetching a representative nucleotide sequence...`;
+              fetchRepresentativeSequence(button.dataset.symbol || button.dataset.recordTitle, button.dataset.organism || organism);
+            });
+          });
+          status.textContent = `Found ${records.length} NCBI record${records.length!==1?'s':''}. Select a target to load its sequence.`;
+        });
+      })
+      .catch(error => {
+        status.textContent = error.message || "NCBI is unavailable or returned no valid records.";
+        document.getElementById("primerResultList").innerHTML = "";
+      });
+  }
+
+  function fetchRepresentativeSequence(geneLabel, organismName){
+    const query = `${geneLabel || "TP53"}${organismName ? ` AND ${organismName}` : ""}`;
+    const url = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=nuccore&retmode=json&retmax=5&term=${encodeURIComponent(query)}`;
+    fetch(url)
+      .then(response => response.ok ? response.json() : Promise.reject(new Error("Sequence lookup failed.")))
+      .then(data => {
+        const ids = (data.esearchresult && data.esearchresult.idlist) || [];
+        if(!ids.length){
+          throw new Error("No nucleotide records were returned for the selected gene.");
+        }
+        return fetch(`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nuccore&id=${ids.join(',')}&rettype=fasta&retmode=text`)
+          .then(res => res.ok ? res.text() : Promise.reject(new Error("Sequence fetch failed.")))
+          .then(text => {
+            const sequence = parseFastaSequence(text);
+            if(!sequence) throw new Error("The NCBI sequence response did not contain usable nucleotide sequence.");
+            const input = document.getElementById("primerSequenceInput");
+            input.value = text;
+            document.getElementById("primerSelectedInfo").textContent = `Target loaded from NCBI: ${geneLabel || "selected gene"} (${organismName || "organism unspecified"})`;
+            document.getElementById("primerSearchStatus").textContent = `Loaded ${sequence.length} nt from NCBI. Review the template and design primers.`;
+            updatePrimerReadouts();
+          });
+      })
+      .catch(error => {
+        document.getElementById("primerSearchStatus").textContent = error.message || "The sequence could not be retrieved from NCBI.";
+      });
+  }
+
+  function parseFastaSequence(rawText){
+    const chunks = (rawText || "").split(/>.*\n|\r\n/g).join("\n").split(/\n+/);
+    const cleaned = chunks.filter(line => line && !line.startsWith(">")).join("").replace(/[^ACGTURYKMSWBDHVN]/gi, "").toUpperCase();
+    return cleaned;
+  }
+
+  function designPrimerCandidates(){
+    const input = document.getElementById("primerSequenceInput");
+    const status = document.getElementById("primerDesignStatus");
+    const candidates = document.getElementById("primerCandidates");
+    const seq = normalizePrimerSequence(input.value);
+    if(!seq || seq.length < 80){
+      status.textContent = "Provide at least 80 nt of valid DNA sequence before designing primer pairs.";
+      candidates.innerHTML = "";
+      return;
+    }
+    const params = {
+      minLen: Number(document.getElementById("primerMinLen").value) || 18,
+      optLen: Number(document.getElementById("primerOptLen").value) || 22,
+      maxLen: Number(document.getElementById("primerMaxLen").value) || 27,
+      minTm: Number(document.getElementById("primerMinTm").value) || 58,
+      optTm: Number(document.getElementById("primerOptTm").value) || 62,
+      maxTm: Number(document.getElementById("primerMaxTm").value) || 68,
+      gcMin: Number(document.getElementById("primerGcMin").value) || 40,
+      gcMax: Number(document.getElementById("primerGcMax").value) || 65,
+      minProduct: Number(document.getElementById("primerMinProduct").value) || 120,
+      maxProduct: Number(document.getElementById("primerMaxProduct").value) || 500,
+      pairCount: Number(document.getElementById("primerPairCount").value) || 3
+    };
+
+    if(params.minLen < 14 || params.maxLen > 40 || params.minLen > params.maxLen) {
+      status.textContent = "Primer lengths are inconsistent. Choose lengths within the reasonable PCR range.";
+      return;
+    }
+    if(params.minTm > params.maxTm || params.gcMin > params.gcMax || params.minProduct > params.maxProduct) {
+      status.textContent = "Settings conflict. Verify the temperatures, GC content, and product-size ranges before running the design.";
+      return;
+    }
+
+    const primerList = [];
+    for(let start = 0; start <= seq.length - params.minLen; start++){
+      const end = start + params.optLen;
+      if(end > seq.length) continue;
+      const region = seq.slice(start, start + params.optLen);
+      const tm = estimateTm(region);
+      const gc = gcPercent(region);
+      if(region.length >= params.minLen && region.length <= params.maxLen && tm >= params.minTm && tm <= params.maxTm && gc >= params.gcMin && gc <= params.gcMax && !hasHairpin(region) && !hasLongHomopolymer(region)) {
+        primerList.push({start, end: start + region.length, sequence: region, tm, gc, orientation: "forward"});
+      }
+    }
+
+    const reverseCandidates = [];
+    for(let start = seq.length - params.optLen; start >= params.minLen; start--) {
+      const region = revComp(seq.slice(start, start + params.optLen));
+      const tm = estimateTm(region);
+      const gc = gcPercent(region);
+      if(region.length >= params.minLen && region.length <= params.maxLen && tm >= params.minTm && tm <= params.maxTm && gc >= params.gcMin && gc <= params.gcMax && !hasHairpin(region) && !hasLongHomopolymer(region)) {
+        reverseCandidates.push({start, end: start + region.length, sequence: region, tm, gc, orientation: "reverse"});
+      }
+    }
+
+    const pairs = [];
+    for(let i = 0; i < Math.min(primerList.length, 30); i++) {
+      const forward = primerList[i];
+      for(let j = 0; j < Math.min(reverseCandidates.length, 30); j++) {
+        const reverse = reverseCandidates[j];
+        const productLength = reverse.start - forward.start + reverse.sequence.length;
+        if(productLength >= params.minProduct && productLength <= params.maxProduct) {
+          const score = Math.abs(forward.tm - params.optTm) + Math.abs(reverse.tm - params.optTm) + Math.abs(forward.gc - ((params.gcMin + params.gcMax)/2));
+          pairs.push({forward, reverse, productLength, score, specificity: evaluatePrimerSpecificity(seq, forward.sequence, reverse.sequence)});
+        }
+      }
+    }
+
+    const selected = pairs.sort((a,b)=>a.score-b.score).slice(0, params.pairCount);
+    if(!selected.length){
+      status.textContent = "No suitable primer pair satisfied the current constraints. Relax the length, Tm, or product-size settings, or provide a longer sequence.";
+      candidates.innerHTML = "";
+      return;
+    }
+
+    status.textContent = `Designed ${selected.length} candidate primer pair${selected.length !== 1 ? "s" : ""} from ${seq.length} nt of template sequence.`;
+    candidates.innerHTML = selected.map((pair, index) => `
+      <div class="primer-candidate">
+        <div class="candidate-header">Candidate ${index + 1}</div>
+        <div class="primer-pair-row">
+          <div><strong>Forward</strong><code>${pair.forward.sequence}</code><small>Tm ${pair.forward.tm.toFixed(1)}°C • GC ${pair.forward.gc.toFixed(1)}%</small></div>
+          <div><strong>Reverse</strong><code>${pair.reverse.sequence}</code><small>Tm ${pair.reverse.tm.toFixed(1)}°C • GC ${pair.reverse.gc.toFixed(1)}%</small></div>
+        </div>
+        <div class="candidate-meta">Product size: ${pair.productLength} nt • Specificity: ${pair.specificity}</div>
+      </div>
+    `).join("");
+  }
+
+  function gcPercent(seq){
+    if(!seq) return 0;
+    const gc = (seq.match(/[GC]/gi) || []).length;
+    return (gc / seq.length) * 100;
+  }
+
+  function estimateTm(seq){
+    const len = seq.length;
+    if(!len) return 0;
+    const gcCount = (seq.match(/[GC]/gi) || []).length;
+    return 64.9 + 41 * ((gcCount - 16.4) / len);
+  }
+
+  function revComp(seq){
+    const map = {A:"T", T:"A", C:"G", G:"C", U:"A", Y:"R", R:"Y", K:"M", M:"K", S:"S", W:"W", B:"V", V:"B", D:"H", H:"D", N:"N"};
+    return [...seq].reverse().map(base => map[base] || base).join("");
+  }
+
+  function hasLongHomopolymer(seq){
+    return /(A{5,}|T{5,}|C{5,}|G{5,})/i.test(seq);
+  }
+
+  function hasHairpin(seq){
+    const len = seq.length;
+    for(let i = 0; i < len - 6; i++) {
+      const left = seq.slice(i, i + 6);
+      const right = revComp(seq.slice(i + 6, i + 12));
+      if(left === right) return true;
+    }
+    return false;
+  }
+
+  function evaluatePrimerSpecificity(template, forwardSeq, reverseSeq){
+    const matches = [forwardSeq, reverseSeq, revComp(forwardSeq), revComp(reverseSeq)];
+    const total = matches.reduce((count, primer) => count + findOccurrences(template, primer), 0);
+    return total <= 2 ? "Strong" : total <= 4 ? "Moderate" : "Low";
+  }
+
+  function findOccurrences(template, primer){
+    if(!primer || primer.length < 10) return 0;
+    const primerPattern = new RegExp(primer, "gi");
+    const matches = template.match(primerPattern);
+    return matches ? matches.length : 0;
+  }
+
   function initializeGlossaryPage(){
     const container = document.getElementById("glossaryTerms");
     const searchInput = document.getElementById("glossarySearch");
@@ -861,8 +1299,8 @@
     if(!container || !searchInput || !countLabel || !modeLabel || !recentList || !favoriteList || !favoriteToggle) return;
 
     const terms = BN.glossaryTerms || [];
-    const favoritesKey = "bionexus-favorites";
-    const recentKey = "bionexus-recent-glossary";
+    const favoritesKey = "BioChem Nexus-favorites";
+    const recentKey = "BioChem Nexus-recent-glossary";
     let state = {query:"", letter:"all", favoritesOnly:false, openTerm:null};
 
     const readStored = (key)=>{ try { return JSON.parse(localStorage.getItem(key) || "[]"); } catch { return []; } };
@@ -932,29 +1370,31 @@
     let html = "";
     if(kind==="home") html = home();
     else if(page === "portfolio") html = portfolioPage();
-    else if(kind==="topic") html = topic(BN.topicPages[page]);
-    else if(kind==="tool") html = tool(BN.toolPages[page]);
-    else if(page === "scientific-glossary") html = glossaryPage(BN.learningPages[page]);
+    else if(kind==="topic") html = topic(BN.topicPages?.[page] || {});
+    else if(kind==="tool") html = tool(BN.toolPages?.[page] || {});
+    else if(page === "scientific-glossary") html = glossaryPage(BN.learningPages?.[page] || {});
     else if(kind==="learning") {
       const learningData = BN.learningModulePages?.[page] || BN.learningPages?.[page];
-      html = learningData && BN.learningModulePages?.[page] ? learningModulePage(learningData) : learning(learningData);
+      html = learningData && BN.learningModulePages?.[page] ? learningModulePage(learningData) : learning(learningData || {});
     }
     else if(kind==="about") html = about();
     else if(kind==="contact") html = contact();
     else if(page === "study-notes") html = studentWorkspacePage();
-    document.body.innerHTML = html;
-    document.body.classList.add("page-ready");
+    if (doc.body) {
+      doc.body.innerHTML = html;
+      doc.body.classList && doc.body.classList.add("page-ready");
+    }
     if(kind==="home") initLandingFbxModel();
     if(kind==="contact") setupContactForm();
     if(page === "study-notes" && window.StudentWorkspace?.initStudyNotesPage){
       window.StudentWorkspace.trackPageVisit?.(document.title || 'Student Workspace', window.location.pathname.split('/').pop() || 'study-notes.html');
       window.StudentWorkspace.initStudyNotesPage(BN.learningPages[page] || {title:'Student Workspace',intro:'A personal dashboard for notes, planning, glossary, and progress tracking.'});
     } else {
-      window.StudentWorkspace?.trackPageVisit?.(document.title || 'BioNexus page', window.location.pathname.split('/').pop() || 'index.html');
+      window.StudentWorkspace?.trackPageVisit?.(document.title || 'BioChem Nexus page', window.location.pathname.split('/').pop() || 'index.html');
     }
-    const mobileToggle = document.getElementById("mobileToggle");
-    const mobileNavClose = document.getElementById("mobileNavClose");
-    const navLinks = document.getElementById("navLinks");
+    const mobileToggle = typeof document !== 'undefined' && typeof document.getElementById === 'function' ? document.getElementById("mobileToggle") : null;
+    const mobileNavClose = typeof document !== 'undefined' && typeof document.getElementById === 'function' ? document.getElementById("mobileNavClose") : null;
+    const navLinks = typeof document !== 'undefined' && typeof document.getElementById === 'function' ? document.getElementById("navLinks") : null;
     const closeMobileNav = ()=>{ navLinks?.classList.remove("open"); mobileToggle?.setAttribute("aria-expanded", "false"); };
     mobileToggle?.addEventListener("click",()=>{ const isOpen = navLinks?.classList.toggle("open"); mobileToggle.setAttribute("aria-expanded", isOpen ? "true" : "false"); });
     mobileNavClose?.addEventListener("click", closeMobileNav);
@@ -967,48 +1407,50 @@
       }
     }));
     navLinks?.querySelectorAll("a").forEach(link=>link.addEventListener("click", closeMobileNav));
-    document.querySelectorAll(".hotspot").forEach(el=>el.addEventListener("mouseenter",()=>{const box=document.getElementById("tipBox"); if(box) box.textContent=el.dataset.tip;}));
-    document.querySelectorAll(".hotspot").forEach(el=>el.addEventListener("click",()=>{const box=document.getElementById("tipBox"); if(box) box.textContent=el.dataset.tip;}));
-    const observer = new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add("visible")}),{threshold:.12});
-    document.querySelectorAll(".card,.section-head,.visual-card").forEach(el=>{el.classList.add("reveal");observer.observe(el)});
-    const dnaShell = document.querySelector(".dna-visual-shell");
-    const dnaGroup = document.querySelector(".dna-helix-group");
-    if(dnaShell && dnaGroup){
-      let targetTiltX = 0;
-      let targetTiltY = 0;
-      let tiltX = 0;
-      let tiltY = 0;
-      let spin = 0;
+    if (typeof document !== 'undefined' && typeof document.querySelectorAll === 'function') {
+      document.querySelectorAll(".hotspot").forEach(el=>el.addEventListener("mouseenter",()=>{const box=document.getElementById("tipBox"); if(box) box.textContent=el.dataset.tip;}));
+      document.querySelectorAll(".hotspot").forEach(el=>el.addEventListener("click",()=>{const box=document.getElementById("tipBox"); if(box) box.textContent=el.dataset.tip;}));
+      const observer = new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add("visible")}),{threshold:.12});
+      document.querySelectorAll(".card,.section-head,.visual-card").forEach(el=>{el.classList.add("reveal");observer.observe(el)});
+      const dnaShell = document.querySelector(".dna-visual-shell");
+      const dnaGroup = document.querySelector(".dna-helix-group");
+      if(dnaShell && dnaGroup){
+        let targetTiltX = 0;
+        let targetTiltY = 0;
+        let tiltX = 0;
+        let tiltY = 0;
+        let spin = 0;
 
-      const updateDnaTilt = (x,y)=>{
-        const rect = dnaShell.getBoundingClientRect();
-        const px = (x - rect.left) / rect.width - 0.5;
-        const py = (y - rect.top) / rect.height - 0.5;
-        targetTiltX = px * 7;
-        targetTiltY = py * -7;
-      };
+        const updateDnaTilt = (x,y)=>{
+          const rect = dnaShell.getBoundingClientRect();
+          const px = (x - rect.left) / rect.width - 0.5;
+          const py = (y - rect.top) / rect.height - 0.5;
+          targetTiltX = px * 7;
+          targetTiltY = py * -7;
+        };
 
-      const frame = ()=>{
-        tiltX += (targetTiltX - tiltX) * 0.08;
-        tiltY += (targetTiltY - tiltY) * 0.08;
-        spin = (spin + 0.3) % 360;
-        const floatOffset = Math.sin((spin / 180) * Math.PI) * 0.6;
-        dnaGroup.style.transform = `translate3d(${tiltX * 0.06}px, ${tiltY * 0.06 + floatOffset}px, 0) rotateZ(${spin}deg) rotateY(${tiltX}deg) rotateX(${tiltY}deg)`;
+        const frame = ()=>{
+          tiltX += (targetTiltX - tiltX) * 0.08;
+          tiltY += (targetTiltY - tiltY) * 0.08;
+          spin = (spin + 0.3) % 360;
+          const floatOffset = Math.sin((spin / 180) * Math.PI) * 0.6;
+          dnaGroup.style.transform = `translate3d(${tiltX * 0.06}px, ${tiltY * 0.06 + floatOffset}px, 0) rotateZ(${spin}deg) rotateY(${tiltX}deg) rotateX(${tiltY}deg)`;
+          requestAnimationFrame(frame);
+        };
+
+        dnaShell.addEventListener("pointermove", (event)=>updateDnaTilt(event.clientX, event.clientY));
+        dnaShell.addEventListener("pointerleave", ()=>{
+          targetTiltX = 0;
+          targetTiltY = 0;
+        });
         requestAnimationFrame(frame);
-      };
-
-      dnaShell.addEventListener("pointermove", (event)=>updateDnaTilt(event.clientX, event.clientY));
-      dnaShell.addEventListener("pointerleave", ()=>{
-        targetTiltX = 0;
-        targetTiltY = 0;
-      });
-      requestAnimationFrame(frame);
+      }
+      const topButton = document.querySelector(".back-to-top");
+      topButton?.addEventListener("click",()=>window.scrollTo({top:0,behavior:"smooth"}));
+      const toggleTopButton = ()=>{ if(topButton) topButton.classList.toggle("visible", window.scrollY > 420); };
+      toggleTopButton();
+      window.addEventListener("scroll", toggleTopButton, {passive:true});
     }
-    const topButton = document.querySelector(".back-to-top");
-    topButton?.addEventListener("click",()=>window.scrollTo({top:0,behavior:"smooth"}));
-    const toggleTopButton = ()=>{ if(topButton) topButton.classList.toggle("visible", window.scrollY > 420); };
-    toggleTopButton();
-    window.addEventListener("scroll", toggleTopButton, {passive:true});
     if(page === "scientific-glossary") initializeGlossaryPage();
     if(kind==="tool") setupTool(BN.toolPages[page]);
   }
