@@ -385,6 +385,109 @@
     }
   }
 
+  function featurePreviewCards(){
+    return `<section class="section feature-preview-section" aria-labelledby="feature-previews-title">
+      <div class="wrap">
+        <div class="section-head center">
+          <span class="eyebrow">A closer look</span>
+          <h2 id="feature-previews-title">Explore BioChem Nexus</h2>
+          <p>Preview the tools and interactive learning experiences that bring molecular biology and laboratory science to life.</p>
+        </div>
+        <div class="grid grid-2 feature-preview-grid">
+          <article class="feature-preview-card">
+            <div class="feature-preview-screen is-running preview-primer" role="img" aria-label="Animated interface preview: search the example GAPDH template, review primer settings, and inspect a local in-silico candidate pair">
+              <div class="preview-window-bar"><span class="preview-window-mark">BN</span><span>Primer Design Studio</span><span class="preview-window-tag">Preview</span></div>
+              <div class="preview-window-body">
+                <div class="preview-caption" aria-hidden="true"><span>1 · Search NCBI</span><span>2 · Review template</span><span>3 · Set constraints</span><span>4 · Inspect candidates</span></div>
+                <div class="preview-search-row"><span>GAPDH</span><span class="preview-search-button">Search NCBI</span></div>
+                <div class="preview-target-row"><span class="preview-check">✓</span><span><strong>GAPDH</strong><small>Homo sapiens · example target</small></span><span class="preview-window-tag">Selected</span></div>
+                <div class="preview-sequence-row"><small>DNA template · example</small><code>ATGGCCTCCGTGTTCCTACCTGACT...</code></div>
+                <div class="preview-setting-row"><span>Length <strong>18–27 nt</strong></span><span>Tm <strong>58–68°C</strong></span><span>GC <strong>40–65%</strong></span></div>
+                <div class="preview-candidate-row">
+                  <strong>Candidate 1 <small>example GAPDH template · 582 nt</small></strong>
+                  <span><code>F&nbsp; CACTGCCACCCAGAAGACTGTG</code></span>
+                  <small>Tm 58.6°C · GC 59.1%</small>
+                  <span><code>R&nbsp; AGCAGTTGGTGGTGCAGGAGGC</code></span>
+                  <small>Tm 60.4°C · GC 63.6% · Product 499 nt</small>
+                  <small>Specificity: Strong · local screen only; not experimentally validated</small>
+                </div>
+              </div>
+            </div>
+            <div class="feature-preview-copy"><span class="eyebrow">Design primers</span><h3>Primer Design Studio</h3><p>Search NCBI or paste a template, tune design constraints, and review in-silico candidates. The preview uses the page’s example GAPDH template; its local specificity check is not experimental validation.</p><div class="feature-preview-actions"><a class="btn btn-primary" href="${href('tools/primer-design-studio.html')}">Try It Now</a><button class="preview-replay" type="button" data-preview-replay aria-label="Replay Primer Design Studio preview">Replay preview</button></div></div>
+          </article>
+          <article class="feature-preview-card">
+            <div class="feature-preview-screen is-running preview-calculator" role="img" aria-label="Animated interface preview: estimate the molecular weight of a six-base DNA sequence">
+              <div class="preview-window-bar"><span class="preview-window-mark">BN</span><span>Molecular Weight Calculator</span><span class="preview-window-tag">Preview</span></div>
+              <div class="preview-window-body">
+                <div class="preview-caption" aria-hidden="true"><span>1 · Enter a sequence</span><span>2 · Choose molecule type</span><span>3 · Calculate mass</span><span>4 · Read the estimate</span></div>
+                <div class="preview-calc-label">Sequence</div>
+                <div class="preview-sequence-entry"><code>ATGCGT</code><span class="preview-cursor" aria-hidden="true"></span></div>
+                <div class="preview-calc-controls"><span>Molecule Type</span><strong>DNA <span aria-hidden="true">⌄</span></strong><span class="preview-calc-button">Calculate</span></div>
+                <div class="preview-calc-result"><small>Approximate molecular weight</small><strong>1,869.21 <span>Da</span></strong><small>6 bases analyzed · sequence estimate</small></div>
+              </div>
+            </div>
+            <div class="feature-preview-copy"><span class="eyebrow">Calculate</span><h3>Molecular Calculator</h3><p>Enter a DNA, RNA, or peptide sequence to estimate its molecular weight. The example shows the calculator’s approximate DNA-base mass sum.</p><div class="feature-preview-actions"><a class="btn btn-primary" href="${href('tools/molecular-weight-calculator.html')}">Try It Now</a><button class="preview-replay" type="button" data-preview-replay aria-label="Replay Molecular Calculator preview">Replay preview</button></div></div>
+          </article>
+          <article class="feature-preview-card">
+            <div class="feature-preview-screen is-running preview-dna" role="img" aria-label="Animated interface preview: explore an interactive DNA model and its highlighted base pairs">
+              <div class="preview-window-bar"><span class="preview-window-mark">BN</span><span>DNA Explorer</span><span class="preview-window-tag">Preview</span></div>
+              <div class="preview-dna-stage">
+                <div class="preview-caption" aria-hidden="true"><span>1 · Open the DNA model</span><span>2 · Inspect the helix</span><span>3 · Highlight a base pair</span><span>4 · Explore the structure</span></div>
+                <svg class="preview-helix" viewBox="0 0 300 190" role="presentation" aria-hidden="true">
+                  <path class="preview-helix-ribbon preview-ribbon-left" d="M94 12 C218 45 82 72 206 98 S82 150 206 178" />
+                  <path class="preview-helix-ribbon preview-ribbon-right" d="M206 12 C82 45 218 72 94 98 S218 150 94 178" />
+                  <g class="preview-helix-pairs"><path d="M116 25h68M133 49h34M123 73h55M112 98h76M124 123h54M135 147h33M115 171h69" /></g>
+                  <path class="preview-highlight-pair" d="M123 73h55" />
+                  <circle class="preview-highlight-dot" cx="178" cy="73" r="4" />
+                </svg>
+                <div class="preview-dna-note"><strong>Interactive 3D model</strong><span>Load model · hover or tap a highlighted structure</span></div>
+                <div class="preview-dna-attribution">3D model loads on the DNA Explorer page</div>
+              </div>
+            </div>
+            <div class="feature-preview-copy"><span class="eyebrow">Explore structure</span><h3>DNA Explorer</h3><p>Open the DNA module’s interactive 3D model, or use its built-in illustration when the external model is unavailable.</p><div class="feature-preview-actions"><a class="btn btn-primary" href="${href('molecular-biology/dna-explorer.html')}">Try It Now</a><button class="preview-replay" type="button" data-preview-replay aria-label="Replay DNA Explorer preview">Replay preview</button></div></div>
+          </article>
+          <article class="feature-preview-card">
+            <div class="feature-preview-screen is-running preview-lab" role="img" aria-label="Animated interface preview: configure a PCR teaching simulation, follow its steps, and view a simulated output">
+              <div class="preview-window-bar"><span class="preview-window-mark">BN</span><span>Virtual Laboratory</span><span class="preview-window-tag">Preview</span></div>
+              <div class="preview-lab-layout">
+                <div class="preview-lab-procedures"><strong>Choose Procedure</strong><span class="is-selected">PCR</span><span>Gel Electrophoresis</span><span>Spectrophotometry</span></div>
+                <div class="preview-lab-main">
+                  <div class="preview-caption" aria-hidden="true"><span>1 · Choose PCR</span><span>2 · Configure a sample</span><span>3 · Play the simulation</span><span>4 · Review the output</span></div>
+                  <strong>PCR</strong>
+                  <div class="preview-lab-fields"><span>Sample <b>E. coli genomic DNA</b></span><span>Polymerase <b>Taq (standard)</b></span></div>
+                  <div class="preview-lab-controls"><span>▶ Play</span><span>Ⅱ Pause</span><span>‹ Prev</span><span>Next ›</span></div>
+                  <div class="preview-lab-step"><span class="preview-thermocycler" aria-hidden="true">↻</span><span>Step 3 of 4<strong>Thermal cycling</strong></span><span class="preview-step-progress"><i></i></span></div>
+                  <div class="preview-lab-output"><span>Simulated teaching output</span><svg viewBox="0 0 160 38" role="presentation" aria-hidden="true"><path d="M2 33H158M4 31C44 31 57 30 76 27S96 10 112 8s28-4 44-4" /></svg></div>
+                </div>
+              </div>
+              <div class="preview-lab-disclaimer">Illustrative simulation · not experimental data</div>
+            </div>
+            <div class="feature-preview-copy"><span class="eyebrow">Practice a workflow</span><h3>Virtual Lab</h3><p>Select a supported procedure, configure its sample and parameters, then step through the teaching simulation and review its generated output.</p><div class="feature-preview-actions"><a class="btn btn-primary" href="${href('laboratory/virtual-lab.html')}">Try It Now</a><button class="preview-replay" type="button" data-preview-replay aria-label="Replay Virtual Lab preview">Replay preview</button></div></div>
+          </article>
+        </div>
+      </div>
+    </section>`;
+  }
+
+  function initFeaturePreviewAnimations(){
+    const screens = [...doc.querySelectorAll('.feature-preview-screen')];
+    const pauseScreen = screen=>screen.classList.toggle('is-paused', document.hidden);
+    if('IntersectionObserver' in window){
+      const observer = new IntersectionObserver(entries=>{
+        entries.forEach(entry=>entry.target.classList.toggle('is-paused', !entry.isIntersecting || document.hidden));
+      }, {threshold:0.15});
+      screens.forEach(screen=>observer.observe(screen));
+    }
+    document.addEventListener('visibilitychange', ()=>screens.forEach(pauseScreen));
+    doc.querySelectorAll('[data-preview-replay]').forEach(button=>button.addEventListener('click', ()=>{
+      const screen = button.closest('.feature-preview-card')?.querySelector('.feature-preview-screen');
+      if(!screen) return;
+      screen.classList.remove('is-running');
+      void screen.offsetWidth;
+      screen.classList.add('is-running');
+    }));
+  }
+
   function home(){
     return `${nav()}<main>
       <section class="hero">
@@ -404,6 +507,7 @@
           </div>
         </div>
       </section>
+      ${featurePreviewCards()}
       <section class="section">
         <div class="wrap">
           <div class="section-head center">
@@ -1384,7 +1488,10 @@
       doc.body.innerHTML = html;
       doc.body.classList && doc.body.classList.add("page-ready");
     }
-    if(kind==="home") initLandingFbxModel();
+    if(kind==="home"){
+      initLandingFbxModel();
+      initFeaturePreviewAnimations();
+    }
     if(kind==="contact") setupContactForm();
     if(page === "study-notes" && window.StudentWorkspace?.initStudyNotesPage){
       window.StudentWorkspace.trackPageVisit?.(document.title || 'Student Workspace', window.location.pathname.split('/').pop() || 'study-notes.html');
