@@ -1502,9 +1502,22 @@
     const mobileToggle = typeof document !== 'undefined' && typeof document.getElementById === 'function' ? document.getElementById("mobileToggle") : null;
     const mobileNavClose = typeof document !== 'undefined' && typeof document.getElementById === 'function' ? document.getElementById("mobileNavClose") : null;
     const navLinks = typeof document !== 'undefined' && typeof document.getElementById === 'function' ? document.getElementById("navLinks") : null;
-    const closeMobileNav = ()=>{ navLinks?.classList.remove("open"); mobileToggle?.setAttribute("aria-expanded", "false"); };
+    const closeMobileNav = ()=>{
+      navLinks?.classList.remove("open");
+      mobileToggle?.setAttribute("aria-expanded", "false");
+      navLinks?.querySelectorAll(".has-dropdown.open").forEach(item=>{
+        item.classList.remove("open");
+        item.querySelector(".nav-button")?.setAttribute("aria-expanded", "false");
+      });
+    };
     mobileToggle?.addEventListener("click",()=>{ const isOpen = navLinks?.classList.toggle("open"); mobileToggle.setAttribute("aria-expanded", isOpen ? "true" : "false"); });
     mobileNavClose?.addEventListener("click", closeMobileNav);
+    document.addEventListener("keydown", event=>{
+      if(event.key === "Escape" && navLinks?.classList.contains("open")){
+        closeMobileNav();
+        mobileToggle?.focus();
+      }
+    });
     navLinks?.querySelectorAll(".has-dropdown > .nav-button").forEach(button=>button.addEventListener("click", event=>{
       if(window.matchMedia("(max-width: 900px)").matches){
         event.preventDefault();
